@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Вход в панель администратора</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container" style="max-width: 440px; margin-top: 60px;">
+    <div class="card">
+      <h1 style="margin-top: 0;">Панель администратора</h1>
+      {% if err %}
+        <p style="color: #b91c1c; font-weight: 600;">Неверный пароль</p>
+      {% endif %}
+      <form method="post" action="/admin/login">
+        <p>
+          <label>Пароль:
+            <input type="password" name="password" autofocus required />
+          </label>
+        </p>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Войти</button>
+      </form>
+      <p style="margin-top: 14px; margin-bottom: 0; display: flex; gap: 8px;">
+        <a class="btn btn-sm" href="/control">Пульт ведущего</a>
+        <a class="btn btn-sm" href="/org-info">Я организатор</a>
+      </p>
+    </div>
+  </div>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+

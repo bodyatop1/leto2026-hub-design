@@ -1,0 +1,166 @@
+{
+  "quiz_title": "КВИЗ ШКОЛЫ ЛЭТО-2026",
+  "logo_url": "/static/uploads/questions/86f466da892e451eb35b150bd3b6fc55.png",
+  "team_capacity": 40,
+  "organizers_enabled": true,
+  "organizers_off_podium": true,
+  "stepwise_podium_enabled": true,
+  "teams_config": [
+    {
+      "id": "red",
+      "name": "Красная",
+      "color": "#dc2626",
+      "is_organizers": false
+    },
+    {
+      "id": "yellow",
+      "name": "Жёлтая",
+      "color": "#ca8a04",
+      "is_organizers": false
+    },
+    {
+      "id": "blue",
+      "name": "Синяя",
+      "color": "#2563eb",
+      "is_organizers": false
+    },
+    {
+      "id": "green",
+      "name": "Зелёная",
+      "color": "#16a34a",
+      "is_organizers": false
+    },
+    {
+      "id": "organizers",
+      "name": "Организаторы",
+      "color": "#4b5563",
+      "is_organizers": true
+    },
+    {
+      "id": "team_45de38",
+      "name": "222",
+      "color": "#9a32fb",
+      "is_organizers": false
+    }
+  ],
+  "sponsor_enabled": true,
+  "sponsor_title": "Партнёр квиза и призовой фонд",
+  "sponsor_description": "Перед началом вопросов знакомимся с партнёром раунда и призами для команд.",
+  "sponsor_prizes": "1 место  главный приз от партнёра2 место  набор от организаторов3 место  памятные сувениры",
+  "sponsor_image_url": "",
+  "place_prizes": {
+    "1": "Главный приз за 1 место",
+    "2": "Приз за 2 место",
+    "3": "Приз за 3 место",
+    "4": "Памятный приз за участие",
+    "5": "Приз за участие"
+  },
+  "thinking_music_url": "/static/uploads/music/thinking_ambient.wav",
+  "thinking_music_name": "Базовая фоновая мелодия (синтез)",
+  "questions": [
+    {
+      "id": "q_1",
+      "question_type": "choice",
+      "text": "Какое понятие в лекции Ярослава Загородникова на ЛЭТО-2026 противопоставляется осмысленной агентизации исследований?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Оверфиттинг (переобучение)"
+        },
+        {
+          "key": "B",
+          "text": "Нейрослоп (AI slop)"
+        },
+        {
+          "key": "C",
+          "text": "Галлюцинация токенайзера"
+        },
+        {
+          "key": "D",
+          "text": "Квантование весов"
+        }
+      ],
+      "correct_option": "B",
+      "reference_answer": "",
+      "time_limit": 30,
+      "points": 100,
+      "partial_points": 50,
+      "image_url": "",
+      "audio_url": ""
+    },
+    {
+      "id": "q_2",
+      "question_type": "choice",
+      "text": "Сколько всего баллов разыгрывается в один игровой день дебатов на Школе ЛЭТО-2026?",
+      "options": [
+        {
+          "key": "A",
+          "text": "500 баллов"
+        },
+        {
+          "key": "B",
+          "text": "700 баллов"
+        },
+        {
+          "key": "C",
+          "text": "800 баллов"
+        },
+        {
+          "key": "D",
+          "text": "1000 баллов"
+        }
+      ],
+      "correct_option": "C",
+      "reference_answer": "",
+      "time_limit": 25,
+      "points": 100,
+      "partial_points": 50,
+      "image_url": "",
+      "audio_url": ""
+    },
+    {
+      "id": "q_3",
+      "question_type": "choice",
+      "text": "Что из перечисленного в генеративных моделях изображений и видео отвечает за перенос конкретной композиции, позы или контуров с референса?",
+      "options": [
+        {
+          "key": "A",
+          "text": "ControlNet"
+        },
+        {
+          "key": "B",
+          "text": "BPE-токенизатор"
+        },
+        {
+          "key": "C",
+          "text": "Word2Vec"
+        },
+        {
+          "key": "D",
+          "text": "Beam Search"
+        }
+      ],
+      "correct_option": "A",
+      "reference_answer": "",
+      "time_limit": 35,
+      "points": 150,
+      "partial_points": 75,
+      "image_url": "",
+      "audio_url": ""
+    },
+    {
+      "id": "q_40db727a",
+      "question_type": "open",
+      "text": "олько всего баллов разыгрывается в один игровой день дебатов на Школе ЛЭТО-2026?",
+      "options": [],
+      "correct_option": "",
+      "reference_answer": "абоб",
+      "time_limit": 30,
+      "points": 100,
+      "partial_points": 50,
+      "image_url": "",
+      "audio_url": ""
+    }
+  ],
+  "auto_random_unanswered": true
+}

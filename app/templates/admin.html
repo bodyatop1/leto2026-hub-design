@@ -1,0 +1,408 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Панель администратора</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    .tabs-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+    .tab-panel { display: none; flex: 1 1 auto; }
+    .tab-panel.active { display: block; }
+    .org-card-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .org-photo-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="wide-16x9">
+    <div class="nav-bar card" style="padding: 10px 16px; margin-bottom: 12px;">
+      <strong style="font-size: clamp(17px, 1.3vw, 22px);">Панель администратора</strong>
+      <div class="nav-links">
+        <a class="btn btn-primary" href="/control">Пульт ведущего</a>
+        <a class="btn" href="/org-info">Я организатор</a>
+        <a class="btn" href="/broadcast" target="_blank">Трансляция</a>
+        <form method="post" action="/admin/logout" style="display: inline;">
+          <button type="submit" class="btn">Выйти</button>
+        </form>
+      </div>
+    </div>
+
+    {% if msg %}
+      <div class="card" style="padding: 10px 16px; margin-bottom: 12px; border-left: 5px solid var(--ok); font-weight: 600;">{{ msg }}</div>
+    {% endif %}
+
+    <div class="tabs-bar">
+      <button type="button" class="btn tab-btn {% if active_tab == 'quiz' %}active{% endif %}" data-tab="tab-quiz" onclick="switchAdminTab('tab-quiz')">1. Квиз и призы</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'teams' %}active{% endif %}" data-tab="tab-teams" onclick="switchAdminTab('tab-teams')">2. Команды</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'curators' %}active{% endif %}" data-tab="tab-curators" onclick="switchAdminTab('tab-curators')">3. Кураторы</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'questions' %}active{% endif %}" data-tab="tab-questions" onclick="switchAdminTab('tab-questions')">4. Вопросы</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'music' %}active{% endif %}" data-tab="tab-music" onclick="switchAdminTab('tab-music')">5. Музыка</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'pages' %}active{% endif %}" data-tab="tab-pages" onclick="switchAdminTab('tab-pages')">6. Страницы и пароли</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'team_photos' %}active{% endif %}" data-tab="tab-team_photos" onclick="switchAdminTab('tab-team_photos')">7. Состав и фото команды</button>
+      <button type="button" class="btn tab-btn {% if active_tab == 'backup' %}active{% endif %}" data-tab="tab-backup" onclick="switchAdminTab('tab-backup')">8. Файлы и почта</button>
+    </div>
+
+    <div id="tab-quiz" class="tab-panel {% if active_tab == 'quiz' %}active{% endif %}">
+      <div class="card">
+        <form method="post" action="/admin/quiz/settings" enctype="multipart/form-data">
+          <div class="grid-2">
+            <label>Название квиза:<input type="text" name="quiz_title" value="{{ quiz.quiz_title }}" required /></label>
+            <label>Лимит участников в команде:<input type="number" name="team_capacity" value="{{ quiz.team_capacity }}" min="1" max="500" /></label>
+            <label>Логотип:<input type="file" name="logo_file" accept="image/*" /></label>
+            <div>
+              {% if quiz.logo_url %}
+                <img src="{{ quiz.logo_url }}" style="max-height: 40px;" alt="Логотип" />
+                <label style="display:inline-flex;gap:6px;margin-left:8px;"><input type="checkbox" name="remove_logo" /> Удалить</label>
+              {% endif %}
+            </div>
+          </div>
+          <div class="grid-2" style="margin-top: 10px;">
+            <label><input type="checkbox" name="organizers_enabled" {% if quiz.organizers_enabled %}checked{% endif %} /> Команда Организаторы в игре</label>
+            <label><input type="checkbox" name="organizers_off_podium" {% if quiz.organizers_off_podium %}checked{% endif %} /> Организаторы без места на пьедестале</label>
+            <label><input type="checkbox" name="stepwise_podium_enabled" {% if quiz.stepwise_podium_enabled %}checked{% endif %} /> Пошаговый финал с последнего места</label>
+            <label><input type="checkbox" name="auto_random_unanswered" {% if quiz.auto_random_unanswered %}checked{% endif %} /> Случайный ответ неответившим (для теста)</label>
+          </div>
+          <div class="grid-2" style="margin-top: 10px;">
+            <label>Призы за места (<code>1: Приз</code>):
+              <textarea name="place_prizes_text" rows="4">{% for k, v in quiz.place_prizes.items() %}{{ k }}: {{ v }}
+{% endfor %}</textarea>
+            </label>
+            <div>
+              <label><input type="checkbox" name="sponsor_enabled" {% if quiz.sponsor_enabled %}checked{% endif %} /> Экран спонсора перед квизом</label>
+              <label style="margin-top:6px;">Заголовок спонсора:<input type="text" name="sponsor_title" value="{{ quiz.sponsor_title }}" /></label>
+              <label style="margin-top:6px;">Призовой фонд:<input type="text" name="sponsor_prizes" value="{{ quiz.sponsor_prizes }}" /></label>
+            </div>
+          </div>
+          <input type="hidden" name="sponsor_description" value="{{ quiz.sponsor_description }}" />
+          <div style="margin-top: 12px;"><button type="submit" class="btn btn-primary">Сохранить настройки квиза</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="tab-teams" class="tab-panel {% if active_tab == 'teams' %}active{% endif %}">
+      <div class="card">
+        <form method="post" action="/admin/teams/update">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Название</th><th>Цвет</th><th>Орг.</th><th></th></tr></thead>
+              <tbody>
+                {% for tc in quiz.teams_config %}
+                  <tr>
+                    <td><input type="hidden" name="team_ids" value="{{ tc.id }}" /><input type="text" name="team_names" value="{{ tc.name }}" required /></td>
+                    <td><input type="color" name="team_colors" value="{{ tc.color }}" style="height:40px;width:62px;" /></td>
+                    <td><input type="checkbox" name="team_org_flags" value="{{ tc.id }}" {% if tc.is_organizers %}checked{% endif %} /></td>
+                    <td>{% if quiz.teams_config|length > 1 %}<button type="submit" formaction="/admin/teams/delete/{{ tc.id }}" class="btn btn-sm">Уд.</button>{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-2" style="margin-top: 10px;">
+            <label>Новая команда:<input type="text" name="new_team_name" placeholder="Название" /></label>
+            <label>Цвет:<input type="color" name="new_team_color" value="#9333ea" style="height:40px;" /></label>
+          </div>
+          <div style="margin-top: 10px;"><button type="submit" class="btn btn-primary">Сохранить команды</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="tab-curators" class="tab-panel {% if active_tab == 'curators' %}active{% endif %}">
+      <div class="card">
+        <div class="grid-2">
+          {% for t in teams %}
+            <div class="card" style="margin-bottom: 0; padding: 12px;">
+              <strong>{{ t.name }}</strong>
+              {% if t.members %}
+                <form method="post" action="/admin/curator/assign" style="margin-top:6px;">
+                  <input type="hidden" name="team_id" value="{{ t.id }}" />
+                  <select name="session_token">
+                    {% for m in t.members %}
+                      <option value="{{ m.token }}" {% if m.is_curator %}selected{% endif %}>{{ m.nickname }}{% if m.is_curator %} (Куратор){% endif %}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm" style="margin-top:8px;">Назначить</button>
+                </form>
+              {% else %}
+                <div class="muted" style="font-size:13px;">Нет участников</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-questions" class="tab-panel {% if active_tab == 'questions' %}active{% endif %}">
+      <div class="grid-16x9">
+        <div class="card">
+          {% set eq = editing_question %}
+          <form method="post" action="{% if eq %}/admin/question/edit/{{ eq.id }}{% else %}/admin/question/add{% endif %}" enctype="multipart/form-data">
+            <div class="grid-2">
+              <label>Тип вопроса:
+                <select id="q-type-select" name="question_type" onchange="toggleQuestionTypeFields()">
+                  <option value="choice" {% if not eq or eq.question_type != 'open' %}selected{% endif %}>Выбор вариантов (любое число)</option>
+                  <option value="open" {% if eq and eq.question_type == 'open' %}selected{% endif %}>Свободный ответ</option>
+                </select>
+              </label>
+              <label>Время (сек.):<input type="number" name="time_limit" value="{{ eq.time_limit if eq else 30 }}" min="5" max="600" /></label>
+              <label>Баллы за Правильно:<input type="number" name="points" value="{{ eq.points if eq else 100 }}" min="10" max="1000" /></label>
+              <label>Баллы за Неполный ответ:<input type="number" name="partial_points" value="{{ eq.partial_points if eq else 50 }}" min="0" max="1000" /></label>
+            </div>
+
+            <label style="margin-top:8px;">Текст вопроса:<textarea name="text" rows="2" required>{{ eq.text if eq else '' }}</textarea></label>
+
+            <div id="choice-builder" style="margin-top:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <strong style="font-size:14px;">Варианты ответа</strong>
+                <button type="button" class="btn btn-sm" onclick="addOptionRow()">+ Добавить вариант</button>
+              </div>
+              <div id="options-rows" style="display:flex;flex-direction:column;gap:6px;">
+                {% set src_opts = eq.options if (eq and eq.options) else [{'key':'A','text':''},{'key':'B','text':''},{'key':'C','text':''},{'key':'D','text':''}] %}
+                {% for o in src_opts %}
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <input type="text" name="opt_keys" value="{{ o.key }}" style="width:56px;margin-top:0;" />
+                    <input type="text" name="opt_texts" value="{{ o.text }}" placeholder="Текст варианта" style="margin-top:0;" />
+                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove(); refreshCorrectSelect();">Уд.</button>
+                  </div>
+                {% endfor %}
+              </div>
+              <label style="margin-top:8px;">Правильный вариант:
+                <select id="correct-option-select" name="correct_option"></select>
+              </label>
+            </div>
+
+            <div id="open-builder" style="display:none;margin-top:10px;">
+              <label>Эталонный правильный ответ (для ведущего):
+                <textarea name="reference_answer" rows="2">{{ eq.reference_answer if eq else '' }}</textarea>
+              </label>
+            </div>
+
+            <div class="grid-2" style="margin-top:8px;">
+              <label>Фото:<input type="file" name="image_file" accept="image/*" /></label>
+              <label>Аудио:<input type="file" name="audio_file" accept="audio/*" /></label>
+            </div>
+
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <button type="submit" class="btn btn-primary">{% if eq %}Сохранить вопрос{% else %}Добавить вопрос{% endif %}</button>
+              {% if eq %}<a class="btn" href="/admin?tab=questions">Отмена</a>{% endif %}
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0;font-size:17px;">Вопросы ({{ quiz.questions|length }})</h3>
+          <div class="table-wrap" style="max-height:420px;overflow-y:auto;">
+            <table>
+              <thead><tr><th>#</th><th>Вопрос</th><th>Тип</th><th></th></tr></thead>
+              <tbody>
+                {% for q in quiz.questions %}
+                  <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ q.text }}</td>
+                    <td>{% if q.question_type == 'open' %}Свобод.{% else %}{{ q.options|length }} вар.{% endif %}</td>
+                    <td style="white-space:nowrap;">
+                      <a class="btn btn-sm" href="/admin?tab=questions&edit_id={{ q.id }}">Изм.</a>
+                      <form method="post" action="/admin/question/delete/{{ q.id }}" style="display:inline;"><button type="submit" class="btn btn-sm">Уд.</button></form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-music" class="tab-panel {% if active_tab == 'music' %}active{% endif %}">
+      <div class="card">
+        <p>Текущий трек: <strong>{{ quiz.thinking_music_name }}</strong></p>
+        <form method="post" action="/admin/music" enctype="multipart/form-data">
+          <div class="grid-2">
+            <label>Название:<input type="text" name="music_name" /></label>
+            <label>Аудиофайл:<input type="file" name="music_file" accept="audio/*" required /></label>
+          </div>
+          <div style="margin-top:10px;"><button type="submit" class="btn btn-primary">Загрузить трек</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="tab-pages" class="tab-panel {% if active_tab == 'pages' %}active{% endif %}">
+      <div class="card">
+        <form method="post" action="/admin/event/meta" enctype="multipart/form-data">
+          <div class="grid-2">
+            <label>Название:<input type="text" name="event_title" value="{{ event.event_title }}" /></label>
+            <label>Тема:<input type="text" name="theme" value="{{ event.theme }}" /></label>
+            <label>Даты:<input type="text" name="dates" value="{{ event.dates }}" /></label>
+            <label>Время:<input type="text" name="time_range" value="{{ event.time_range }}" /></label>
+            <label>Место:<input type="text" name="location" value="{{ event.location }}" /></label>
+            <label>Ссылка ВК:<input type="text" name="vk_group" value="{{ event.vk_group }}" /></label>
+            <label>Пароль админа:<input type="text" name="admin_password" value="{{ event.admin_password }}" required /></label>
+            <label>Пароль ведущего:<input type="text" name="control_password" value="{{ event.control_password }}" required /></label>
+            <label>Пароль Я организатор:<input type="text" name="org_info_password" value="{{ event.org_info_password }}" required /></label>
+            <label><input type="checkbox" name="org_info_enabled" {% if event.org_info_enabled %}checked{% endif %} /> Кнопка Я организатор внизу команды</label>
+          </div>
+          <input type="hidden" name="curator_chat_url" value="{{ event.curator_chat_url }}" />
+          <input type="hidden" name="curator_chat_label" value="{{ event.curator_chat_label }}" />
+          <input type="hidden" name="about_text" value="{{ event.about_paragraphs | join('\n') }}" />
+          <input type="hidden" name="welcome_media_type" value="{{ event.welcome_media_type }}" />
+          <input type="hidden" name="welcome_video_url" value="{{ event.welcome_video_url }}" />
+          <input type="hidden" name="quiz_ready_title" value="{{ event.quiz_ready_title }}" />
+          <input type="hidden" name="quiz_ready_subtitle" value="{{ event.quiz_ready_subtitle }}" />
+          <div style="margin-top:10px;"><button type="submit" class="btn btn-primary">Сохранить настройки страниц</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="tab-team_photos" class="tab-panel {% if active_tab == 'team_photos' %}active{% endif %}">
+      <div class="card">
+        <h3 style="margin-top:0;">Добавить нового участника команды</h3>
+        <form method="post" action="/admin/team-member/add" enctype="multipart/form-data">
+          <div class="grid-2">
+            <label>Имя и фамилия:<input type="text" name="name" required placeholder="Например, Иван Иванов" /></label>
+            <label>Комитет:<input type="text" name="committee" value="Организаторы" /></label>
+            <label>Роль / должность:<input type="text" name="role" placeholder="Роль в команде" /></label>
+            <label>Фото:<input type="file" name="photo_file" accept="image/*" /></label>
+          </div>
+          <div style="margin-top:10px;"><button type="submit" class="btn btn-primary">Добавить участника</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Список команды ({{ event.organizers|length }})  редактирование, фото и удаление</h3>
+        <div class="grid-2">
+          {% for org in event.organizers %}
+            <div class="org-card-box">
+              <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;">
+                <div style="display:flex;gap:10px;align-items:center;min-width:0;">
+                  <img src="{{ org.photo or '/static/uploads/avatars/default_person.svg' }}" alt="{{ org.name }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" />
+                  <div style="min-width:0;">
+                    <div style="font-weight:700;">{{ org.name }}</div>
+                    <div class="muted" style="font-size:13px;">{{ org.committee }}</div>
+                  </div>
+                </div>
+                <form method="post" action="/admin/team-member/delete/{{ org.id }}">
+                  <button type="submit" class="btn btn-sm">Удалить</button>
+                </form>
+              </div>
+
+              <form method="post" action="/admin/team-member/save" enctype="multipart/form-data" class="org-photo-row">
+                <input type="hidden" name="org_id" value="{{ org.id }}" />
+                <label>Имя:<input type="text" name="name" value="{{ org.name }}" required /></label>
+                <label>Комитет:<input type="text" name="committee" value="{{ org.committee }}" /></label>
+                <label>Роль:<input type="text" name="role" value="{{ org.role }}" /></label>
+                <label>Новое фото:<input type="file" name="photo_file" accept="image/*" /></label>
+                <button type="submit" class="btn btn-sm btn-primary" style="width:100%;">Сохранить изменения</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-backup" class="tab-panel {% if active_tab == 'backup' %}active{% endif %}">
+      <div class="grid-16x9">
+        <div class="card">
+          <h3 style="margin-top:0;font-size:17px;">1. Файл настроек, команд, страниц и окон</h3>
+          <form method="post" action="/admin/backup/save-settings">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button type="submit" class="btn btn-primary">Сохранить настройки в backups/</button>
+              <a class="btn" href="/admin/backup/download-settings">Скачать настройки (.json)</a>
+            </div>
+          </form>
+          <form method="post" action="/admin/backup/upload-settings" enctype="multipart/form-data" style="margin-top:12px;">
+            <label>Загрузить файл настроек (.json):<input type="file" name="settings_file" accept=".json,application/json" required /></label>
+            <button type="submit" class="btn" style="margin-top:8px;">Загрузить настройки</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0;font-size:17px;">2. Пакет вопросов и ответов</h3>
+          <form method="post" action="/admin/backup/save-questions">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button type="submit" class="btn btn-primary">Сохранить пакет вопросов в backups/</button>
+              <a class="btn" href="/admin/backup/download-questions">Скачать пакет вопросов (.json)</a>
+            </div>
+          </form>
+          <form method="post" action="/admin/backup/upload-questions" enctype="multipart/form-data" style="margin-top:12px;">
+            <label>Загрузить пакет вопросов (.json):<input type="file" name="questions_file" accept=".json,application/json" required /></label>
+            <button type="submit" class="btn" style="margin-top:8px;">Загрузить пакет вопросов</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const presetCorrect = "{{ eq.correct_option if eq else '' }}";
+
+    function switchAdminTab(targetId) {
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.getElementById(targetId).classList.add("active");
+      const btn = document.querySelector(`.tab-btn[data-tab='${targetId}']`);
+      if (btn) btn.classList.add("active");
+    }
+
+    function toggleQuestionTypeFields() {
+      const t = document.getElementById("q-type-select").value;
+      document.getElementById("choice-builder").style.display = (t === "choice") ? "block" : "none";
+      document.getElementById("open-builder").style.display = (t === "open") ? "block" : "none";
+    }
+
+    function refreshCorrectSelect() {
+      const sel = document.getElementById("correct-option-select");
+      const prev = sel.value || presetCorrect;
+      sel.innerHTML = "";
+      document.querySelectorAll("#options-rows input[name='opt_keys']").forEach((inp, idx) => {
+        const k = inp.value.trim() || String.fromCharCode(65 + idx);
+        const opt = document.createElement("option");
+        opt.value = k;
+        opt.textContent = k;
+        sel.appendChild(opt);
+      });
+      if (prev && Array.from(sel.options).some((o) => o.value === prev)) sel.value = prev;
+    }
+
+    function addOptionRow() {
+      const rows = document.getElementById("options-rows");
+      const nextLetter = String.fromCharCode(65 + rows.children.length);
+      const div = document.createElement("div");
+      div.style.display = "flex";
+      div.style.gap = "6px";
+      div.style.alignItems = "center";
+      div.innerHTML = `
+        <input type="text" name="opt_keys" value="${nextLetter}" style="width:56px;margin-top:0;" oninput="refreshCorrectSelect()" />
+        <input type="text" name="opt_texts" placeholder="Текст варианта" style="margin-top:0;" />
+        <button type="button" class="btn btn-sm" onclick="this.parentElement.remove(); refreshCorrectSelect();">Уд.</button>
+      `;
+      rows.appendChild(div);
+      refreshCorrectSelect();
+    }
+
+    toggleQuestionTypeFields();
+    refreshCorrectSelect();
+  </script>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+

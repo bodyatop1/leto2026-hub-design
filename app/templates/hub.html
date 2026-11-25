@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>{{ event.event_title }}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/socket.io.min.js"></script>
+  <style>
+    body {
+      background: {{ ui.get('bg_color', '#f4f5f7') }};
+      color: {{ ui.get('text_color', '#181a1f') }};
+    }
+    .card {
+      background: {{ ui.get('card_color', '#ffffff') }};
+    }
+    .btn-primary {
+      background: {{ ui.get('accent_color', '#2563eb') }};
+      border-color: {{ ui.get('accent_color', '#2563eb') }};
+    }
+    .quiz-full-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      min-height: 100dvh;
+      background: {{ ui.get('bg_color', '#f4f5f7') }};
+      color: {{ ui.get('text_color', '#181a1f') }};
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: calc(10px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+      overflow-y: auto;
+    }
+    .quiz-full-overlay.active {
+      display: flex;
+    }
+    .quiz-full-card {
+      width: 100%;
+      max-width: 780px;
+      min-height: auto;
+      margin: auto 0;
+      background: {{ ui.get('card_color', '#ffffff') }};
+      border: 2px solid {{ ui.get('accent_color', '#2563eb') }};
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+    .qr-action-link {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 2px solid {{ ui.get('accent_color', '#2563eb') }};
+      background: #ffffff;
+      color: var(--text);
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .qr-action-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
+    }
+    .qr-action-link img {
+      width: min(250px, 62vw);
+      height: min(250px, 62vw);
+      border-radius: 10px;
+      display: block;
+    }
+    .qr-tap-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: {{ ui.get('accent_color', '#2563eb') }};
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+  </style>
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div id="quiz-ready-overlay" class="quiz-full-overlay {% if event.quiz_ready_mode %}active{% endif %}">
+    <div class="quiz-full-card">
+      <h1 id="ready-title" style="margin: 0; font-size: clamp(24px, 4vw, 38px);">{{ event.quiz_ready_title }}</h1>
+      <p id="ready-subtitle" class="muted" style="margin: 0; font-size: clamp(16px, 2vw, 21px); max-width: 620px;">{{ event.quiz_ready_subtitle }}</p>
+      <a href="/play" class="qr-action-link" aria-label="Войти в квиз по QR-коду или нажатием">
+        <img src="{{ qr_play }}" alt="QR-код для входа в квиз" />
+        <span class="qr-tap-badge">Наведите камеру или нажмите для входа</span>
+      </a>
+      <div style="max-width: 600px; font-size: clamp(15px, 1.8vw, 18px);">
+        <div><strong>Как войти:</strong> отсканируйте QR-код камерой телефона или нажмите прямо на него на этом экране.</div>
+        <div class="muted" style="margin-top: 6px; font-size: 14px;">Введите имя, выберите команду и при необходимости отметьте Куратор.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    {% include "nav_partial.html" %}
+
+    <div class="card">
+      <h1 style="margin: 0 0 8px; font-size: 22px;">{{ event.event_title }}</h1>
+      <p style="margin: 6px 0;"><strong>Тема:</strong> {{ event.theme }}</p>
+      <p style="margin: 6px 0;"><strong>Даты:</strong> {{ event.dates }}{% if event.time_range %}, {{ event.time_range }}{% endif %}</p>
+      <p style="margin: 6px 0;"><strong>Место:</strong> {{ event.location }}</p>
+      <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+        {% if event.vk_group %}
+          <a class="btn" href="{{ event.vk_group }}" target="_blank">Группа ВКонтакте</a>
+        {% endif %}
+        {% if event.curator_chat_url %}
+          <a class="btn" href="{{ event.curator_chat_url }}" target="_blank">{{ event.curator_chat_label or 'Чат' }}</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if event.welcome_media_type == 'video' and event.welcome_video_url %}
+      <div class="card">
+        <h2 style="margin-top: 0; font-size: 18px;">Приветственное видео</h2>
+        <video controls class="q-media" src="{{ event.welcome_video_url }}"></video>
+      </div>
+    {% elif event.welcome_media_type == 'slideshow' and event.slideshow_images %}
+      <div class="card">
+        <h2 style="margin-top: 0; font-size: 18px;">Фото-обзор</h2>
+        <img id="hub-slide-img" class="q-media" src="{{ event.slideshow_images[0] }}" alt="Слайд" />
+        <div style="margin-top: 10px; display: flex; gap: 8px;">
+          <button type="button" class="btn btn-sm" onclick="prevHubSlide()">Назад</button>
+          <button type="button" class="btn btn-sm" onclick="nextHubSlide()">Далее</button>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <h2 style="margin-top: 0; font-size: 18px;">О школе</h2>
+      {% for p in event.about_paragraphs %}
+        <p style="margin: 8px 0;">{{ p }}</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    socket.on("quiz_ready_updated", (d) => {
+      const ov = document.getElementById("quiz-ready-overlay");
+      if (d.quiz_ready_mode) ov.classList.add("active");
+      else ov.classList.remove("active");
+    });
+
+    const slides = {{ event.slideshow_images | tojson }};
+    let slideIdx = 0;
+    function renderHubSlide() {
+      const img = document.getElementById("hub-slide-img");
+      if (img && slides && slides.length) img.src = slides[slideIdx];
+    }
+    function nextHubSlide() {
+      if (!slides || !slides.length) return;
+      slideIdx = (slideIdx + 1) % slides.length;
+      renderHubSlide();
+    }
+    function prevHubSlide() {
+      if (!slides || !slides.length) return;
+      slideIdx = (slideIdx - 1 + slides.length) % slides.length;
+      renderHubSlide();
+    }
+  </script>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+
+

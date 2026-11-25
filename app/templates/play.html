@@ -1,0 +1,719 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Командный квиз</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: {{ ui.get('bg_color', '#f4f5f7') if ui is defined else '#f4f5f7' }};
+      color: {{ ui.get('text_color', '#181a1f') if ui is defined else '#181a1f' }};
+    }
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .card {
+      background: {{ ui.get('card_color', '#ffffff') if ui is defined else '#ffffff' }};
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-sizing: border-box;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #94a3b8;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background: #cbd5e1;
+    }
+    .btn-primary {
+      background: {{ ui.get('accent_color', '#2563eb') if ui is defined else '#2563eb' }};
+      border-color: {{ ui.get('accent_color', '#2563eb') if ui is defined else '#2563eb' }};
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+    .join-role-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .opt-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background: #f8fafc;
+    }
+    .opt-btn-main {
+      flex: 1 1 220px;
+      text-align: left;
+      justify-content: flex-start;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .opt-btn-main.is-selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+      font-weight: 700;
+    }
+    .curator-submit-box {
+      display: none;
+      padding: 14px;
+      border: 1px solid #93c5fd;
+      border-radius: 12px;
+      background: #f8fafc;
+      margin: 12px 0;
+    }
+
+    /* === QUIZ TIMER BAR (GREEN -> YELLOW -> RED) === */
+    .quiz-timer-box {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      margin: 8px 0 14px;
+      width: 100%;
+    }
+    .quiz-timer-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: clamp(20px, 2.2vw, 30px);
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .quiz-timer-track {
+      position: relative;
+      width: 100%;
+      height: 28px;
+      border-radius: 10px;
+      background: #e5e7eb;
+      border: 1px solid #cbd5e1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .quiz-timer-fill {
+      height: 100%;
+      width: 100%;
+      background: #16a34a;
+      transition: width 0.25s linear, background-color 0.25s linear;
+    }
+    .quiz-timer-expired-label {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      text-align: center;
+      font-size: clamp(14px, 1.4vw, 18px);
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #b91c1c;
+      text-transform: uppercase;
+      display: none;
+    }
+    .quiz-timer-track.is-expired {
+      background: #fee2e2;
+      border-color: #ef4444;
+    }
+    .quiz-timer-track.is-expired .quiz-timer-fill {
+      width: 0% !important;
+      display: none;
+    }
+    .quiz-timer-track.is-expired .quiz-timer-expired-label {
+      display: block;
+    }
+  </style>
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container">
+    <div id="error-box" class="card" style="display: none; border-color: #ef4444; background: #fef2f2; color: #b91c1c; font-weight: 700;"></div>
+
+    <div id="join-section" class="card">
+      <h1 style="margin-top: 0;">Вход в команду</h1>
+      <div style="margin-bottom: 12px;">
+        <label for="nickname"><strong>Ваше имя:</strong></label><br />
+        <input type="text" id="nickname" maxlength="30" placeholder="Введите имя" style="width: 100%; max-width: 360px; padding: 8px 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #cbd5e1;" />
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label for="team-select"><strong>Выберите команду:</strong></label><br />
+        <select id="team-select" style="width: 100%; max-width: 360px; padding: 8px 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #cbd5e1;">
+          {% for t in teams %}
+            <option value="{{ t.id }}" data-color="{{ t.color if t.color is defined else (t.hex_color if t.hex_color is defined else (t.team_color if t.team_color is defined else '')) }}" data-team-color="{{ t.color if t.color is defined else (t.hex_color if t.hex_color is defined else (t.team_color if t.team_color is defined else '')) }}" {% if preselected_team == t.id %}selected{% endif %}>
+              {{ t.name }} ({{ t.count }}/{{ t.capacity if t.capacity is defined else (t.max_size if t.max_size is defined else 50) }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="join-role-btns">
+        <button type="button" id="join-player-btn" class="btn btn-primary" onclick="joinAsRole('player')">я участник</button>
+        <button type="button" id="join-curator-btn" class="btn" onclick="joinAsRole('curator')">я куратор</button>
+      </div>
+    </div>
+
+    <div id="room-section" class="card" style="display: none;">
+      <p style="margin-top: 0;">
+        Вы: <strong id="me-name"></strong> 
+        Команда: <strong id="team-name"></strong> (<span id="team-count">0</span>/<span id="team-cap">50</span>) 
+        Роль: <strong id="me-role">участник</strong> 
+        Очки команды: <strong id="team-score">0</strong>
+      </p>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0;" />
+
+      <div id="lobby-wait">
+        <p style="margin: 0;">Ожидаем запуск вопроса ведущим...</p>
+      </div>
+
+      <div id="question-box" style="display: none;">
+        <div class="quiz-timer-box" id="qt-box-play">
+          <div class="quiz-timer-header">Осталось: <span id="qt-num-play">0</span> сек.</div>
+          <div class="quiz-timer-track" id="qt-track-play">
+            <div class="quiz-timer-fill" id="qt-fill-play"></div>
+            <span class="quiz-timer-expired-label" id="qt-exp-play">время истекло</span>
+          </div>
+        </div>
+
+        <h2 id="q-title" style="margin-top: 0;"></h2>
+        <p id="q-text" style="font-size: 18px; font-weight: 600;"></p>
+
+        <!-- Блок вариантов ответа -->
+        <div id="voting-stage-block">
+          <div id="curator-other-hint" style="display: none; margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; background: #eff6ff; border: 1px solid #93c5fd; font-weight: 600;">
+            Выберите вариант для мгновенной отправки ответа команды:
+          </div>
+
+          <div id="choice-options-block">
+            <div class="opt-btn-row">
+              <button type="button" id="btn-opt-A" class="btn opt-btn-main" onclick="handleOptionClick('A')"><strong>A:</strong> <span id="opt-A"></span></button>
+              <span>голосов: <strong id="cnt-A">0</strong></span>
+            </div>
+            <div class="opt-btn-row">
+              <button type="button" id="btn-opt-B" class="btn opt-btn-main" onclick="handleOptionClick('B')"><strong>B:</strong> <span id="opt-B"></span></button>
+              <span>голосов: <strong id="cnt-B">0</strong></span>
+            </div>
+            <div class="opt-btn-row">
+              <button type="button" id="btn-opt-C" class="btn opt-btn-main" onclick="handleOptionClick('C')"><strong>C:</strong> <span id="opt-C"></span></button>
+              <span>голосов: <strong id="cnt-C">0</strong></span>
+            </div>
+            <div class="opt-btn-row">
+              <button type="button" id="btn-opt-D" class="btn opt-btn-main" onclick="handleOptionClick('D')"><strong>D:</strong> <span id="opt-D"></span></button>
+              <span>голосов: <strong id="cnt-D">0</strong></span>
+            </div>
+          </div>
+
+          <div id="open-answer-block" style="display: none; margin-bottom: 12px;">
+            <label for="open-answer-input"><strong>Свободный ответ команды:</strong></label><br />
+            <input type="text" id="open-answer-input" placeholder="Введите ответ команды" style="width: 100%; max-width: 420px; padding: 8px 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #cbd5e1;" />
+            <div id="curator-open-send-wrap" style="display: none; margin-top: 8px;">
+              <button type="button" class="btn btn-primary" onclick="curatorSubmitOpenDirect()">Отправить вариант</button>
+            </div>
+          </div>
+
+          <div id="curator-cancel-other-wrap" style="display: none; margin-top: 8px;">
+            <button type="button" class="btn" onclick="curatorCancelOtherChoice()">Назад к отправке</button>
+          </div>
+        </div>
+
+        <!-- Блок отправки ответа куратором -->
+        <div id="curator-submit-box" class="curator-submit-box">
+          <h3 style="margin-top: 0;">Отправка ответа команды</h3>
+          <p style="margin: 0 0 10px;">
+            Лидирует в команде: <strong id="curator-leading-label"></strong>
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" id="btn-submit-leading" class="btn btn-primary" onclick="curatorSubmitLeading()">Отправить лидирующий</button>
+            <button type="button" id="btn-other-option" class="btn" onclick="curatorOpenOtherOptions()">Отправить другой вариант</button>
+          </div>
+        </div>
+
+        <p>Ваш текущий выбор: <strong id="my-vote">не выбран</strong></p>
+        <p>Лидирует в команде: <strong id="leading-opt"></strong></p>
+        <p>Финальный ответ команды: <strong id="submitted-opt">ещё не отправлен</strong></p>
+        <p id="correct-opt-row" style="display: none;">Правильный ответ: <strong id="correct-opt"></strong></p>
+      </div>
+
+      <div id="finished-box" style="display: none;">
+        <h2 style="margin-top: 0;">Игра завершена!</h2>
+        <p>Итоговый счёт вашей команды: <strong id="final-score">0</strong></p>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 14px 0;" />
+      <h3 style="margin-top: 0;">Участники команды</h3>
+      <ul id="members-list" style="margin: 0; padding-left: 20px;"></ul>
+    </div>
+  </div>
+
+  <script>
+    const quizTimerMaxMap = {};
+    let latestPlayStatus = "lobby";
+    let latestPlayTimeLimit = null;
+
+    function updateQuizTimerBar(key, remaining, totalSec, isQuestionActive) {
+      const rem = Math.max(0, Number(remaining) || 0);
+      if (Number(totalSec) > 0) {
+        quizTimerMaxMap[key] = Number(totalSec);
+      } else if (!quizTimerMaxMap[key] || rem > quizTimerMaxMap[key]) {
+        quizTimerMaxMap[key] = Math.max(rem, 1);
+      }
+      const maxSec = Math.max(1, quizTimerMaxMap[key] || 1);
+      const track = document.getElementById(`qt-track-${key}`);
+      const fill = document.getElementById(`qt-fill-${key}`);
+      const expLbl = document.getElementById(`qt-exp-${key}`);
+      const numEl = document.getElementById(`qt-num-${key}`);
+      if (numEl) numEl.textContent = rem;
+      if (!track || !fill) return;
+
+      const expired = (rem <= 0) || (isQuestionActive === false);
+      if (expired) {
+        track.classList.add("is-expired");
+        fill.style.width = "0%";
+        if (expLbl) expLbl.textContent = "время истекло";
+        return;
+      }
+
+      track.classList.remove("is-expired");
+      const ratio = Math.min(1, Math.max(0, rem / maxSec));
+      fill.style.width = `${(ratio * 100).toFixed(1)}%`;
+
+      let color = "#16a34a";
+      if (ratio <= 0.25) {
+        color = "#dc2626";
+      } else if (ratio <= 0.55) {
+        color = "#eab308";
+      }
+      fill.style.backgroundColor = color;
+    }
+
+    function syncPlayTimerFromState(state) {
+      if (!state) return;
+      latestPlayStatus = state.status || "lobby";
+      const qObj = state.question || {};
+      const limit = qObj.time_limit || qObj.duration || state.time_limit || state.total_seconds || null;
+      if (Number(limit) > 0) latestPlayTimeLimit = Number(limit);
+
+      const rawRem = (state.remaining_seconds !== undefined && state.remaining_seconds !== null)
+        ? state.remaining_seconds
+        : ((qObj.remaining_seconds !== undefined && qObj.remaining_seconds !== null)
+            ? qObj.remaining_seconds
+            : (state.timer !== undefined ? state.timer : 0));
+
+      const box = document.getElementById("qt-box-play");
+      const visible = (latestPlayStatus === "question" || latestPlayStatus === "reveal");
+      if (box) box.style.display = visible ? "flex" : "none";
+
+      if (visible) {
+        const remNum = Number(rawRem) || 0;
+        updateQuizTimerBar("play", remNum, latestPlayTimeLimit, latestPlayStatus === "question" && remNum > 0);
+      }
+    }
+
+    function extractOptionTexts(q) {
+      const result = { A: "", B: "", C: "", D: "" };
+      if (!q) return result;
+      const rawOpts = q.options || q.choices || q.answers || {};
+      const keys = ["A", "B", "C", "D"];
+
+      if (Array.isArray(rawOpts)) {
+        keys.forEach((k, idx) => {
+          const item = rawOpts[idx];
+          if (item && typeof item === "object") {
+            const keyVal = (item.key || item.code || item.letter || k).toString().toUpperCase();
+            const txtVal = item.text || item.label || item.value || item.title || "";
+            if (keys.includes(keyVal)) {
+              result[keyVal] = String(txtVal);
+            } else {
+              result[k] = String(txtVal);
+            }
+          } else if (item !== undefined && item !== null) {
+            result[k] = String(item);
+          }
+        });
+      } else if (typeof rawOpts === "object") {
+        keys.forEach((k) => {
+          const val = rawOpts[k] !== undefined ? rawOpts[k] : rawOpts[k.toLowerCase()];
+          if (val && typeof val === "object") {
+            result[k] = String(val.text || val.label || val.value || "");
+          } else if (val !== undefined && val !== null) {
+            result[k] = String(val);
+          }
+        });
+      }
+
+      keys.forEach((k) => {
+        if (!result[k]) {
+          const alt = q["option_" + k] || q["option_" + k.toLowerCase()] || q["opt_" + k] || q["opt_" + k.toLowerCase()];
+          if (alt !== undefined && alt !== null) {
+            result[k] = String(alt);
+          }
+        }
+      });
+
+      return result;
+    }
+
+    const socket = io();
+    localStorage.removeItem("quiz_role");
+
+    function getOrCreateToken(role) {
+      const storageKey = role === "curator" ? "quiz_curator_token" : "quiz_player_token";
+      let tok = sessionStorage.getItem(storageKey);
+      if (!tok) {
+        const prefix = role === "curator" ? "cur_" : "usr_";
+        tok = prefix + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem(storageKey, tok);
+      }
+      return tok;
+    }
+
+    let sessionToken = sessionStorage.getItem("quiz_active_token") || getOrCreateToken("player");
+
+    const savedNick = localStorage.getItem("quiz_nickname");
+    if (savedNick) {
+      document.getElementById("nickname").value = savedNick;
+    }
+
+    let currentMyVote = null;
+    let curatorPickingOther = false;
+    let trackedQuestionKey = "";
+    let isCurrentCurator = false;
+    let latestTeamState = null;
+    let pendingSubmittedLabel = null;
+
+    function showError(msg) {
+      const box = document.getElementById("error-box");
+      if (!msg) {
+        box.textContent = "";
+        box.style.display = "none";
+        return;
+      }
+      box.textContent = msg;
+      box.style.display = "block";
+    }
+
+    function joinAsRole(role) {
+      showError("");
+      const nickname = document.getElementById("nickname").value.trim();
+      const teamId = document.getElementById("team-select").value;
+      if (!nickname) {
+        showError("Введите имя");
+        return;
+      }
+      const wantsCurator = (role === "curator");
+      sessionToken = getOrCreateToken(wantsCurator ? "curator" : "player");
+      sessionStorage.setItem("quiz_active_token", sessionToken);
+      sessionStorage.setItem("quiz_active_role", wantsCurator ? "curator" : "player");
+      isCurrentCurator = wantsCurator;
+      localStorage.setItem("quiz_nickname", nickname);
+
+      socket.emit("player_join", {
+        session_token: sessionToken,
+        nickname: nickname,
+        team_id: teamId,
+        role: wantsCurator ? "curator" : "player",
+        is_curator: wantsCurator
+      });
+    }
+
+    function emitCuratorSubmit(payload) {
+      showError("");
+      const t = (latestTeamState && latestTeamState.team) || {};
+      const teamId = t.id || document.getElementById("team-select").value;
+      const optVal = (payload && Object.prototype.hasOwnProperty.call(payload, "option")) ? payload.option : null;
+      const txtVal = (payload && Object.prototype.hasOwnProperty.call(payload, "answer_text")) ? payload.answer_text : undefined;
+
+      pendingSubmittedLabel = txtVal || optVal || t.leading_option || currentMyVote || "отправлен";
+      document.getElementById("submitted-opt").textContent = pendingSubmittedLabel;
+      curatorPickingOther = false;
+
+      const fullPayload = {
+        session_token: sessionToken,
+        team_id: teamId,
+        option: optVal,
+        answer_key: optVal,
+        choice: optVal,
+        role: isCurrentCurator ? "curator" : "player",
+        is_curator: isCurrentCurator
+      };
+      if (txtVal !== undefined) {
+        fullPayload.answer_text = txtVal;
+        fullPayload.open_answer = txtVal;
+        fullPayload.text = txtVal;
+      }
+
+      socket.emit("captain_submit_answer", fullPayload);
+    }
+
+    function handleOptionClick(option) {
+      showError("");
+      if (isCurrentCurator && curatorPickingOther) {
+        emitCuratorSubmit({ option: option });
+        return;
+      }
+      currentMyVote = option;
+      document.getElementById("my-vote").textContent = option;
+      socket.emit("player_vote", {
+        session_token: sessionToken,
+        option: option
+      });
+      if (latestTeamState) {
+        renderTeamState(latestTeamState);
+      }
+    }
+
+    function curatorOpenOtherOptions() {
+      showError("");
+      curatorPickingOther = true;
+      if (latestTeamState) {
+        renderTeamState(latestTeamState);
+      }
+    }
+
+    function curatorCancelOtherChoice() {
+      showError("");
+      curatorPickingOther = false;
+      if (latestTeamState) {
+        renderTeamState(latestTeamState);
+      }
+    }
+
+    function curatorSubmitLeading() {
+      const t = (latestTeamState && latestTeamState.team) || {};
+      const lead = t.leading_option || currentMyVote || null;
+      emitCuratorSubmit({ option: lead });
+    }
+
+    function curatorSubmitOpenDirect() {
+      const txt = (document.getElementById("open-answer-input").value || "").trim();
+      if (!txt) {
+        showError("Введите ответ команды");
+        return;
+      }
+      emitCuratorSubmit({ answer_text: txt, option: null });
+    }
+
+    function renderTeamState(state) {
+      if (!state) return;
+      latestTeamState = state;
+      syncPlayTimerFromState(state);
+
+      const t = state.team || {};
+      const members = Array.isArray(t.members) ? t.members : [];
+      const meMember = members.find((m) => m.session_token === sessionToken);
+      const activeRole = sessionStorage.getItem("quiz_active_role");
+
+      if (meMember && (meMember.role === "curator" || meMember.is_curator === true)) {
+        isCurrentCurator = true;
+      } else if (meMember && meMember.role === "player") {
+        isCurrentCurator = false;
+      } else if (activeRole === "curator" && (!t.curator_token || t.curator_token === sessionToken)) {
+        isCurrentCurator = true;
+      } else if (activeRole === "player") {
+        isCurrentCurator = false;
+      } else if (state.is_curator !== undefined) {
+        isCurrentCurator = !!state.is_curator;
+      }
+
+      document.getElementById("team-name").textContent = t.name || "";
+      document.getElementById("team-count").textContent = t.count !== undefined ? t.count : members.length;
+      document.getElementById("team-cap").textContent = t.capacity || t.max_size || 50;
+      document.getElementById("team-score").textContent = t.score !== undefined ? t.score : 0;
+      document.getElementById("me-role").textContent = isCurrentCurator ? "куратор" : "участник";
+
+      if (meMember && meMember.nickname) {
+        document.getElementById("me-name").textContent = meMember.nickname;
+      }
+
+      const membersList = document.getElementById("members-list");
+      membersList.innerHTML = "";
+      members.forEach((m) => {
+        const li = document.createElement("li");
+        li.textContent = m.nickname || "";
+        membersList.appendChild(li);
+      });
+
+      const lobbyWait = document.getElementById("lobby-wait");
+      const questionBox = document.getElementById("question-box");
+      const finishedBox = document.getElementById("finished-box");
+
+      lobbyWait.style.display = "none";
+      questionBox.style.display = "none";
+      finishedBox.style.display = "none";
+
+      const st = state.status || "lobby";
+      if (st === "lobby" || st === "sponsor") {
+        currentMyVote = null;
+        curatorPickingOther = false;
+        pendingSubmittedLabel = null;
+        trackedQuestionKey = "";
+        document.getElementById("my-vote").textContent = "не выбран";
+        lobbyWait.style.display = "block";
+      } else if ((st === "question" || st === "reveal") && state.question) {
+        questionBox.style.display = "block";
+        const q = state.question;
+        const qKey = String(q.id || q.index || state.question_index || "");
+        if (qKey && qKey !== trackedQuestionKey) {
+          trackedQuestionKey = qKey;
+          currentMyVote = null;
+          curatorPickingOther = false;
+          pendingSubmittedLabel = null;
+        }
+
+        const isOpen = (q.question_type === "open");
+        const qIdx = q.index || state.question_index || 1;
+        const qTot = q.total || state.total_questions || 1;
+
+        document.getElementById("q-title").textContent = `Вопрос ${qIdx} из ${qTot}`;
+        document.getElementById("q-text").textContent = q.text || "";
+
+        const optTexts = extractOptionTexts(q);
+        const vc = t.vote_counts || {};
+        const serverMyVote = t.my_vote || (meMember && meMember.vote) || null;
+        const effectiveVote = currentMyVote || serverMyVote || null;
+
+        ["A", "B", "C", "D"].forEach((k) => {
+          const spanEl = document.getElementById("opt-" + k);
+          if (spanEl) spanEl.textContent = optTexts[k];
+          const cntEl = document.getElementById("cnt-" + k);
+          if (cntEl) cntEl.textContent = vc[k] !== undefined ? vc[k] : 0;
+          const btnEl = document.getElementById("btn-opt-" + k);
+          if (btnEl) {
+            if (effectiveVote === k) {
+              btnEl.classList.add("is-selected");
+            } else {
+              btnEl.classList.remove("is-selected");
+            }
+          }
+        });
+
+        const serverSubmitted = t.submitted_text || t.submitted_option || null;
+        if (serverSubmitted) {
+          pendingSubmittedLabel = null;
+        }
+
+        document.getElementById("my-vote").textContent = effectiveVote || "не выбран";
+        document.getElementById("leading-opt").textContent = t.leading_option || "";
+        document.getElementById("submitted-opt").textContent =
+          serverSubmitted || pendingSubmittedLabel || "ещё не отправлен";
+
+        const correctRow = document.getElementById("correct-opt-row");
+        const corrVal = q.reference_answer || q.correct_option;
+        if (st === "reveal" && corrVal) {
+          correctRow.style.display = "block";
+          document.getElementById("correct-opt").textContent = corrVal;
+        } else {
+          correctRow.style.display = "none";
+        }
+
+        const votingStageBlock = document.getElementById("voting-stage-block");
+        const curatorSubmitBox = document.getElementById("curator-submit-box");
+        const alreadySubmitted = !!(serverSubmitted || pendingSubmittedLabel);
+
+        const canCuratorAct = isCurrentCurator && (st === "question") && (!alreadySubmitted || !!t.curator_change_allowed);
+
+        if (canCuratorAct && curatorPickingOther) {
+          votingStageBlock.style.display = "block";
+          curatorSubmitBox.style.display = "none";
+          document.getElementById("choice-options-block").style.display = isOpen ? "none" : "block";
+          document.getElementById("open-answer-block").style.display = isOpen ? "block" : "none";
+          document.getElementById("curator-other-hint").style.display = "block";
+          document.getElementById("curator-open-send-wrap").style.display = isOpen ? "block" : "none";
+          document.getElementById("curator-cancel-other-wrap").style.display = "block";
+        } else if (canCuratorAct) {
+          votingStageBlock.style.display = "none";
+          curatorSubmitBox.style.display = "block";
+          document.getElementById("curator-leading-label").textContent = t.leading_option || "";
+          document.getElementById("curator-other-hint").style.display = "none";
+          document.getElementById("curator-cancel-other-wrap").style.display = "none";
+        } else {
+          votingStageBlock.style.display = "block";
+          curatorSubmitBox.style.display = "none";
+          document.getElementById("choice-options-block").style.display = isOpen ? "none" : "block";
+          document.getElementById("open-answer-block").style.display = isOpen ? "block" : "none";
+          document.getElementById("curator-other-hint").style.display = "none";
+          document.getElementById("curator-open-send-wrap").style.display = "none";
+          document.getElementById("curator-cancel-other-wrap").style.display = "none";
+        }
+      } else if (st === "finished" || st === "podium_step") {
+        finishedBox.style.display = "block";
+        document.getElementById("final-score").textContent = t.score !== undefined ? t.score : 0;
+      }
+    }
+
+    socket.on("timer_tick", (d) => {
+      const rem = (d && d.remaining_seconds !== undefined) ? Number(d.remaining_seconds) || 0 : 0;
+      updateQuizTimerBar("play", rem, latestPlayTimeLimit, latestPlayStatus === "question" && rem > 0);
+    });
+
+    socket.on("join_error", (data) => showError(data && data.error ? data.error : "Ошибка входа"));
+    socket.on("action_error", (data) => {
+      pendingSubmittedLabel = null;
+      if (latestTeamState) renderTeamState(latestTeamState);
+      showError(data && data.error ? data.error : "Ошибка действия");
+    });
+
+    socket.on("joined", (data) => {
+      showError("");
+      document.getElementById("join-section").style.display = "none";
+      document.getElementById("room-section").style.display = "block";
+      if (data && data.nickname) {
+        document.getElementById("me-name").textContent = data.nickname;
+      }
+      if (data && data.role !== undefined) {
+        isCurrentCurator = (data.role === "curator") || !!data.is_curator;
+        sessionStorage.setItem("quiz_active_role", isCurrentCurator ? "curator" : "player");
+      }
+      document.getElementById("me-role").textContent = isCurrentCurator ? "куратор" : "участник";
+    });
+
+    socket.on("team_state", (state) => {
+      renderTeamState(state);
+    });
+
+    socket.on("broadcast_state", (state) => {
+      syncPlayTimerFromState(state);
+      if (latestTeamState && state) {
+        const merged = Object.assign({}, latestTeamState, {
+          status: state.status || latestTeamState.status,
+          question: state.question || latestTeamState.question,
+          question_index: state.question_index !== undefined ? state.question_index : latestTeamState.question_index,
+          total_questions: state.total_questions !== undefined ? state.total_questions : latestTeamState.total_questions,
+          remaining_seconds: state.remaining_seconds !== undefined ? state.remaining_seconds : latestTeamState.remaining_seconds
+        });
+        renderTeamState(merged);
+      }
+    });
+  </script>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+
+

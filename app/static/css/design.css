@@ -1,0 +1,843 @@
+﻿/* ==========================================================================
+   МИНИМАЛИСТИЧНАЯ ТЁМНАЯ ТЕМА + ГЕОМЕТРИЯ + КОМАНДНЫЙ ЦВЕТ (/play)
+   Изменяйте оформление здесь, не затрагивая логику функциональных скриптов.
+   ========================================================================== */
+
+:root {
+  --bg: #0b0e14;
+  --bg-elevated: #111622;
+  --card: #151b29;
+  --surface-alt: #1a2234;
+  --text: #eef2f7;
+  --muted: #94a3b8;
+  --border: rgba(148, 163, 184, 0.22);
+  --border-strong: rgba(148, 163, 184, 0.42);
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-soft: rgba(59, 130, 246, 0.16);
+  --team-color: var(--accent);
+  --team-soft: rgba(59, 130, 246, 0.18);
+  --team-glow: rgba(59, 130, 246, 0.28);
+  --ok: #22c55e;
+  --warn: #eab308;
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.16);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --geo-line: rgba(148, 163, 184, 0.06);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Геометрический фон с мягкой анимацией */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, var(--geo-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--geo-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.85;
+}
+
+.geo-bg-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.geo-shape {
+  position: absolute;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  will-change: transform;
+}
+
+.geo-shape--diamond {
+  width: 240px;
+  height: 240px;
+  top: 7%;
+  right: -55px;
+  border-color: var(--team-soft);
+  animation: geoSpinDiamond 26s linear infinite;
+}
+
+.geo-shape--ring {
+  width: 185px;
+  height: 185px;
+  bottom: 9%;
+  left: -45px;
+  border-radius: 32px;
+  animation: geoSpinRing 32s linear infinite reverse;
+}
+
+.geo-shape--tri {
+  width: 140px;
+  height: 140px;
+  top: 48%;
+  right: 6%;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background: rgba(148, 163, 184, 0.05);
+  animation: geoDriftTri 18s ease-in-out infinite alternate;
+}
+
+@keyframes geoSpinDiamond {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(45deg);
+  }
+  50% {
+    transform: translate3d(-22px, 18px, 0) rotate(225deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(405deg);
+  }
+}
+
+@keyframes geoSpinRing {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(20px, -16px, 0) rotate(180deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(360deg);
+  }
+}
+
+@keyframes geoDriftTri {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(-12deg) scale(0.96);
+  }
+  100% {
+    transform: translate3d(-18px, -24px, 0) rotate(16deg) scale(1.05);
+  }
+}
+
+/* Поверх фоновой геометрии */
+.container,
+.wide-16x9 {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0 auto;
+  animation: pageEnter 0.36s var(--ease-out) both;
+}
+
+.container {
+  max-width: 920px;
+  padding: 16px;
+}
+
+.wide-16x9 {
+  max-width: 1440px;
+  padding: 14px 18px;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Карточки и панели */
+.card,
+.org-card-box {
+  background: rgba(21, 27, 41, 0.9);
+  background-color: #151b29;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  transition: border-color 0.2s var(--ease-out), transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.card:hover,
+.org-card-box:hover {
+  border-color: var(--border-strong);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Навигация и шапка */
+.nav-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.top-header {
+  background: rgba(17, 22, 34, 0.92) !important;
+  background-color: #111622 !important;
+  color: var(--text) !important;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+/* Кнопки и состояния */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  transition: transform 0.14s var(--ease-out), background-color 0.18s var(--ease-out), border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+
+.btn:hover {
+  background: #243049;
+  border-color: rgba(226, 232, 240, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary,
+.btn.active,
+.btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn.active:hover,
+.btn.is-active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #ffffff;
+}
+
+.btn-sm {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Квадратные кнопки действий с иконками карандаша и корзины */
+.btn.btn-sm.icon-action-btn,
+button.btn.btn-sm[data-action-icon] {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-sm) !important;
+  flex: 0 0 32px !important;
+}
+
+.btn.btn-sm.icon-action-btn svg,
+button.btn.btn-sm[data-action-icon] svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.btn.btn-sm.icon-action-btn--delete:hover,
+button.btn.btn-sm[data-action-icon="delete"]:hover {
+  background: var(--danger-bg) !important;
+  background-color: var(--danger-bg) !important;
+  border-color: var(--danger) !important;
+  color: #fca5a5 !important;
+}
+
+.btn.btn-sm.icon-action-btn--edit:hover,
+button.btn.btn-sm[data-action-icon="edit"]:hover {
+  background: var(--accent-soft) !important;
+  background-color: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+  color: #93c5fd !important;
+}
+
+/* Компактная кнопка Загрузить и поля загрузки файлов */
+.quiz-upload-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  min-height: 30px !important;
+  height: auto !important;
+  padding: 5px 11px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid var(--border-strong) !important;
+  background: var(--surface-alt) !important;
+  background-color: #1a2234 !important;
+  color: var(--text) !important;
+  cursor: pointer;
+  width: auto !important;
+  max-width: fit-content !important;
+}
+
+.quiz-upload-btn:hover {
+  background: var(--accent) !important;
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+input[type="file"] {
+  display: inline-block !important;
+  width: auto !important;
+  max-width: 260px !important;
+  padding: 4px 8px !important;
+  font-size: 12.5px !important;
+  line-height: 1.25 !important;
+  color: var(--muted) !important;
+  background: var(--bg-elevated) !important;
+  background-color: #111622 !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 8px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.16s var(--ease-out), border-color 0.16s var(--ease-out), color 0.16s var(--ease-out);
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* Поля ввода */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+input[type="url"],
+select,
+textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  transition: border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+label {
+  display: block;
+  font-size: 14px;
+}
+
+/* Сетки и таблицы */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.grid-16x9 {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .grid-16x9 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.schedule-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.q-media {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+/* Оверлей объявления / готовности к квизу */
+#quiz-ready-overlay.quiz-full-overlay,
+.quiz-full-overlay.active {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 80% 18%, var(--accent-soft), transparent 45%),
+    radial-gradient(circle at 18% 82%, rgba(148, 163, 184, 0.08), transparent 48%),
+    rgba(11, 14, 20, 0.92);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  animation: pageEnter 0.32s var(--ease-out) both;
+}
+
+#quiz-ready-overlay > *,
+.quiz-full-overlay.active > * {
+  position: relative;
+  z-index: 2;
+  max-width: min(860px, 100%);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+}
+
+/* Элементы команд и вариантов без белых фонов */
+.team-line-item {
+  background: var(--surface-alt) !important;
+  background-color: #1a2234 !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--team-color, var(--accent)) !important;
+  border-radius: var(--radius-sm);
+}
+
+.option-tile {
+  background: var(--card) !important;
+  background-color: #151b29 !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition: transform 0.16s var(--ease-out), border-color 0.18s var(--ease-out), background-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+
+.option-tile:hover {
+  border-color: var(--team-color, var(--accent));
+  background: var(--surface-alt) !important;
+  background-color: #1a2234 !important;
+  transform: translateY(-1px);
+}
+
+.option-tile.is-selected,
+.option-tile.selected,
+.option-tile.active {
+  border-color: var(--team-color, var(--accent));
+  background: color-mix(in srgb, var(--team-color, var(--accent)) 22%, var(--surface-alt)) !important;
+  box-shadow: 0 0 0 1px var(--team-color, var(--accent)), 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Плавная смена вопроса / контента */
+.q-pulse {
+  animation: contentSwap 0.28s var(--ease-out);
+}
+
+@keyframes contentSwap {
+  from {
+    opacity: 0.35;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Цвет команды из палитры админа на /play */
+body.play-team-theme,
+body.play-team-theme[style] {
+  background:
+    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--team-color, var(--accent)) 28%, transparent), transparent 48%),
+    radial-gradient(circle at 12% 88%, color-mix(in srgb, var(--team-color, var(--accent)) 20%, transparent), transparent 52%),
+    var(--bg) !important;
+  background-color: var(--bg) !important;
+  transition: background 0.28s var(--ease-out);
+}
+
+body.play-team-theme .card,
+body.play-team-theme .org-card-box {
+  border-color: color-mix(in srgb, var(--team-color) 42%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--team-color) 14%, transparent), 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.play-team-theme .btn-primary {
+  background: var(--team-color);
+  border-color: var(--team-color);
+  color: #ffffff;
+  box-shadow: 0 4px 16px var(--team-glow);
+}
+
+body.play-team-theme .btn-primary:hover {
+  filter: brightness(1.08);
+  background: var(--team-color);
+  border-color: var(--team-color);
+}
+
+body.play-team-theme .opt-btn-row {
+  border-color: color-mix(in srgb, var(--team-color) 28%, var(--border));
+  background: color-mix(in srgb, var(--team-color) 7%, var(--surface-alt));
+  transition: transform 0.16s var(--ease-out), border-color 0.18s var(--ease-out), background-color 0.18s var(--ease-out);
+}
+
+body.play-team-theme .opt-btn-main.is-selected {
+  border-color: var(--team-color);
+  background: color-mix(in srgb, var(--team-color) 24%, var(--surface-alt));
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--team-color), 0 6px 18px var(--team-glow);
+  transform: translateX(3px);
+}
+
+body.play-team-theme .curator-submit-box {
+  border-color: color-mix(in srgb, var(--team-color) 65%, transparent);
+  background: color-mix(in srgb, var(--team-color) 10%, var(--surface-alt));
+  animation: contentSwap 0.24s var(--ease-out);
+}
+
+/* Базовые стили /play */
+.join-role-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.opt-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+}
+
+.opt-btn-main {
+  flex: 1 1 220px;
+  justify-content: flex-start;
+  text-align: left;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.opt-btn-main.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.curator-submit-box {
+  padding: 14px;
+  margin: 12px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+}
+
+/* Таймер */
+.quiz-timer-box {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 14px;
+  width: 100%;
+}
+
+.quiz-timer-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: clamp(18px, 2.2vw, 28px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.quiz-timer-track {
+  position: relative;
+  width: 100%;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: rgba(148, 163, 184, 0.16);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.quiz-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--ok);
+  transition: width 0.25s linear, background-color 0.25s linear;
+}
+
+.quiz-timer-expired-label {
+  display: none;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #fca5a5;
+  text-transform: uppercase;
+}
+
+.quiz-timer-track.is-expired {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.quiz-timer-track.is-expired .quiz-timer-fill {
+  display: none;
+  width: 0% !important;
+}
+
+.quiz-timer-track.is-expired .quiz-timer-expired-label {
+  display: block;
+}
+
+/* Адаптивный пьедестал */
+.podium-row,
+.podium-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.podium-col,
+.podium-place {
+  flex: 1 1 140px;
+  min-width: 130px;
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+/* Трансляция и объявление без белых полей */
+body[class*="broadcast"],
+body[data-page*="broadcast"],
+.broadcast-page,
+.broadcast-screen,
+.quiz-announce,
+.quiz-announcement {
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+button,
+.btn {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .container,
+  .wide-16x9 {
+    padding: 12px;
+  }
+  .card,
+  .org-card-box {
+    padding: 14px;
+  }
+  .join-role-btns .btn {
+    flex: 1 1 140px;
+  }
+}
+
+/* ==========================================================================
+   КОМПАКТНЫЙ INPUT[TYPE="FILE"] ВНУТРИ .ORG-CARD-BOX БЕЗ ВЫХОДА ЗА РАМКУ
+   ========================================================================== */
+
+.org-card-box,
+.org-card-box > div,
+.org-card-box form {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.org-card-box input[type="file"],
+.org-card-box input[type="file"][name="photo_file"] {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: auto !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  color: var(--muted) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.org-card-box input[type="file"]::file-selector-button {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  padding: 4px 9px !important;
+  margin-right: 6px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   МГНОВЕННЫЙ ЦВЕТ ВЫБРАННОЙ КОМАНДЫ НА /PLAY ДО ВЫБОРА РОЛИ И ВХОДА
+   ========================================================================== */
+
+body.play-team-theme,
+body.play-team-theme[style],
+body.play-team-theme.has-team-preview,
+body.play-team-theme.has-team-preview[style] {
+  background:
+    radial-gradient(circle at 82% 14%, color-mix(in srgb, var(--team-color, var(--accent)) 34%, transparent), transparent 52%),
+    radial-gradient(circle at 15% 86%, color-mix(in srgb, var(--team-color, var(--accent)) 26%, transparent), transparent 56%),
+    var(--bg, #0b0e14) !important;
+  background-color: var(--bg, #0b0e14) !important;
+  transition: background 0.25s var(--ease-out, ease), border-color 0.25s var(--ease-out, ease);
+}
+
+body.play-team-theme #join-section,
+body.play-team-theme #join-section.card,
+body.play-team-theme .join-box,
+body.play-team-theme .join-box.card {
+  border-color: color-mix(in srgb, var(--team-color, var(--accent)) 60%, transparent) !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--team-color, var(--accent)) 16%, var(--card, #151b29)), var(--card, #151b29) 75%) !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--team-color, var(--accent)) 28%, transparent) !important;
+}
+
+body.play-team-theme #join-section select,
+body.play-team-theme #join-section input[type="text"] {
+  border-color: color-mix(in srgb, var(--team-color, var(--accent)) 55%, var(--border-strong, rgba(148, 163, 184, 0.42)));
+}
+
+body.play-team-theme #join-section .btn-primary,
+body.play-team-theme #join-btn.btn-primary {
+  background: var(--team-color, var(--accent)) !important;
+  border-color: var(--team-color, var(--accent)) !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   ОКАНТОВКА ШКАЛЫ .team-progress-track
+   ========================================================================== */
+.team-progress-track {
+  border: 1.5px solid var(--border-strong, rgba(148, 163, 184, 0.45)) !important;
+  box-sizing: border-box;
+}
+.team-progress-fill {
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+}

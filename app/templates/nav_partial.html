@@ -1,0 +1,28 @@
+﻿<style>
+  body {
+    background: {{ ui.get('bg_color', '#f4f5f7') }};
+    color: {{ ui.get('text_color', '#181a1f') }};
+  }
+  .card {
+    background: {{ ui.get('card_color', '#ffffff') }};
+  }
+  .btn-primary {
+    background: {{ ui.get('accent_color', '#2563eb') }};
+    border-color: {{ ui.get('accent_color', '#2563eb') }};
+  }
+</style>
+<div class="nav-bar card" style="padding: 10px 14px;">
+  <div class="nav-links">
+    <a class="btn btn-sm" href="/">Главная</a>
+    <a class="btn btn-sm" href="/program">{{ ui.get('program_title', 'Программа') }}</a>
+    <a class="btn btn-sm" href="/partners">{{ ui.get('partners_title', 'Наши партнёры') }}</a>
+    <a class="btn btn-sm" href="/photos">{{ ui.get('photos_title', 'Фото с мероприятия') }}</a>
+    <a class="btn btn-sm" href="/team">{{ ui.get('team_title', 'Наша команда') }}</a>
+  </div>
+  <div class="nav-links">
+    
+  </div>
+</div>
+
+
+

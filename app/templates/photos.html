@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ ui.get('photos_title', 'Фото с мероприятия') }}  {{ event.event_title }}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container">
+    {% include "nav_partial.html" %}
+
+    <div class="card">
+      <h1 style="margin-top: 0;">{{ ui.get('photos_title', 'Фото с мероприятия') }}</h1>
+      <div class="grid-2">
+        {% for ph in event.photos %}
+          <div class="card" style="margin-bottom: 0; text-align: center;">
+            <img src="{{ ph.url }}" alt="{{ ph.title }}" class="q-media" style="max-height: 280px; object-fit: cover;" />
+            <div style="margin-top: 8px; font-weight: 600;">{{ ph.title }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+

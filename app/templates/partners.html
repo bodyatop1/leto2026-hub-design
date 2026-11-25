@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ ui.get('partners_title', 'Наши партнёры') }}  {{ event.event_title }}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container">
+    {% include "nav_partial.html" %}
+
+    <div class="card">
+      <h1 style="margin-top: 0;">{{ ui.get('partners_title', 'Наши партнёры') }}</h1>
+      <div class="grid-2">
+        {% for pt in event.partners %}
+          <div class="card" style="margin-bottom: 0;">
+            <h3 style="margin-top: 0;">{{ pt.name }}</h3>
+            {% if pt.description %}
+              <p>{{ pt.description }}</p>
+            {% endif %}
+            {% if pt.url %}
+              <a class="btn btn-sm" href="{{ pt.url }}" target="_blank" rel="noopener">Перейти</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+

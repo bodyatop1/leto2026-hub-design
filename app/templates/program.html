@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ ui.get('program_title', 'Программа мероприятия') }}  {{ event.event_title }}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container">
+    {% include "nav_partial.html" %}
+
+    <div class="card">
+      <h1 style="margin-top: 0;">{{ ui.get('program_title', 'Программа мероприятия') }}</h1>
+      <p class="muted">{{ event.dates }}  {{ event.time_range }}  {{ event.location }}</p>
+    </div>
+
+    {% for d in event.days %}
+      <div class="card">
+        <h2 style="margin-top: 0;">{{ d.day_label }}</h2>
+        {% if d.subtitle %}
+          <p class="muted"><strong>{{ d.subtitle }}</strong></p>
+        {% endif %}
+        {% for ev_item in d.events %}
+          <div class="schedule-row">
+            <strong>{{ ev_item.time }}</strong>  {{ ev_item.title }}
+            {% if ev_item.speaker %}
+              <div class="muted" style="font-size: 13px;">{{ ev_item.speaker }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    {% if event.debate_rules %}
+      <div class="card">
+        <h2 style="margin-top: 0;">Регламент и правила дебатов</h2>
+        {% for rule in event.debate_rules %}
+          <p>{{ rule }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+

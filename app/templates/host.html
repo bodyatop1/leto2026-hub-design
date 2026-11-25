@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Экран ведущего  Квиз ЛЭТО-2026</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/socket.io.min.js"></script>
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav-bar">
+      <div>
+        <strong>Экран ведущего (Проектор)</strong>  Статус: <span id="st-badge" class="badge">lobby</span>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" onclick="socket.emit('host_next_question')">Следующий вопрос</button>
+        <button type="button" class="btn" onclick="socket.emit('host_close_question')">Закрыть раунд досрочно</button>
+        <button type="button" class="btn" onclick="socket.emit('host_reset_game')">Сброс игры</button>
+        <a class="btn" href="/admin">Конструктор и музыка</a>
+        <a class="btn" href="/">Программа</a>
+      </div>
+    </div>
+
+    <!-- Аудиоплеер фоновой музыки во время обсуждения -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <strong>Фоновая музыка при выборе ответа:</strong>
+        <span id="music-status" class="muted">играет автоматически во время таймера</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn" onclick="toggleAudioUnlock()">Включить звук в браузере</button>
+        <audio id="bg-music" loop></audio>
+      </div>
+    </div>
+
+    <!-- Блок QR-кодов в лобби -->
+    <div id="lobby-qr-card" class="card">
+      <h2>Подключение команд по QR-коду</h2>
+      <p class="muted">Общий вход: <strong>{{ play_url }}</strong> (до 50 участников в каждой команде)</p>
+      <div class="grid-people" style="margin-top: 14px;">
+        <div class="card" style="text-align: center;">
+          <img src="{{ qr_play }}" alt="Общий QR" style="width: 150px; height: 150px;" />
+          <div><strong>Общий QR (выбор команды)</strong></div>
+        </div>
+        {% for tq in team_qrs %}
+          <div class="card" style="text-align: center;">
+            <img src="{{ tq.qr }}" alt="{{ tq.name }}" style="width: 150px; height: 150px;" />
+            <div><strong>{{ tq.name }}</strong></div>
+            <div class="muted" style="font-size: 12px;">{{ tq.url }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Блок текущего вопроса -->
+    <div id="q-card" class="card" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 id="hq-title" style="margin: 0;">Вопрос</h2>
+        <div style="font-size: 24px; font-weight: bold;">
+          Таймер: <span id="hq-timer">0</span> сек.
+        </div>
+      </div>
+
+      <p id="hq-text" style="font-size: 22px; font-weight: 600; margin: 14px 0;"></p>
+
+      <div id="hq-img-wrap" style="display: none;">
+        <img id="hq-img" class="q-media" src="" alt="Фотовопрос" />
+      </div>
+      <div id="hq-aud-wrap" style="display: none;">
+        <p class="muted" style="margin-bottom: 4px;">Аудиофрагмент вопроса:</p>
+        <audio id="hq-aud" controls style="width: 100%;"></audio>
+      </div>
+
+      <div class="grid-2" style="margin-top: 14px;">
+        <div class="card"><strong>A:</strong> <span id="hq-A"></span></div>
+        <div class="card"><strong>B:</strong> <span id="hq-B"></span></div>
+        <div class="card"><strong>C:</strong> <span id="hq-C"></span></div>
+        <div class="card"><strong>D:</strong> <span id="hq-D"></span></div>
+      </div>
+
+      <p id="hq-cor-row" style="display: none; font-size: 20px; color: var(--ok);">
+        Правильный ответ: <strong id="hq-cor"></strong>
+      </p>
+    </div>
+
+    <!-- Таблица команд и баллов -->
+    <div class="card">
+      <h2>Команды и турнирная таблица</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Команда</th>
+            <th>Участники</th>
+            <th>Капитан</th>
+            <th>Проголосовало</th>
+            <th>Ответ команды</th>
+            <th>Очки</th>
+          </tr>
+        </thead>
+        <tbody id="teams-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    socket.emit("host_join");
+
+    const bgMusic = document.getElementById("bg-music");
+    let currentMusicUrl = "";
+    let lastQuestionAudio = "";
+
+    function toggleAudioUnlock() {
+      bgMusic.play().then(() => {
+        bgMusic.pause();
+        document.getElementById("music-status").textContent = "звук разрешён, включится при запуске вопроса";
+      }).catch(() => {
+        document.getElementById("music-status").textContent = "нажмите ещё раз для разрешения автовоспроизведения";
+      });
+    }
+
+    socket.on("timer_tick", (d) => {
+      document.getElementById("hq-timer").textContent = d.remaining_seconds;
+    });
+
+    socket.on("host_state", (state) => {
+      document.getElementById("st-badge").textContent = state.status;
+      document.getElementById("hq-timer").textContent = state.remaining_seconds;
+
+      if (state.thinking_music_url && currentMusicUrl !== state.thinking_music_url) {
+        currentMusicUrl = state.thinking_music_url;
+        bgMusic.src = currentMusicUrl;
+      }
+
+      // Управление фоновой музыкой: играет, пока статус == question (и нет отдельного аудиовопроса)
+      const hasQuestionAudio = state.question && state.question.audio_url;
+      if (state.status === "question" && currentMusicUrl && !hasQuestionAudio) {
+        bgMusic.play().catch(() => {});
+      } else {
+        bgMusic.pause();
+        if (state.status !== "question") {
+          bgMusic.currentTime = 0;
+        }
+      }
+
+      document.getElementById("lobby-qr-card").style.display = (state.status === "lobby") ? "block" : "none";
+
+      const qCard = document.getElementById("q-card");
+      if (state.question) {
+        qCard.style.display = "block";
+        document.getElementById("hq-title").textContent =
+          `Вопрос ${state.question_index} из ${state.total_questions} (${state.question.points} баллов)`;
+        document.getElementById("hq-text").textContent = state.question.text;
+
+        const imgWrap = document.getElementById("hq-img-wrap");
+        if (state.question.image_url) {
+          imgWrap.style.display = "block";
+          document.getElementById("hq-img").src = state.question.image_url;
+        } else {
+          imgWrap.style.display = "none";
+        }
+
+        const audWrap = document.getElementById("hq-aud-wrap");
+        const hqAud = document.getElementById("hq-aud");
+        if (state.question.audio_url) {
+          audWrap.style.display = "block";
+          if (lastQuestionAudio !== state.question.audio_url) {
+            hqAud.src = state.question.audio_url;
+            lastQuestionAudio = state.question.audio_url;
+            if (state.status === "question") hqAud.play().catch(() => {});
+          }
+        } else {
+          audWrap.style.display = "none";
+          lastQuestionAudio = "";
+        }
+
+        for (const k of ["A", "B", "C", "D"]) {
+          document.getElementById("hq-" + k).textContent = state.question.options[k];
+        }
+
+        const corRow = document.getElementById("hq-cor-row");
+        if (state.question.correct_option) {
+          corRow.style.display = "block";
+          document.getElementById("hq-cor").textContent = state.question.correct_option;
+        } else {
+          corRow.style.display = "none";
+        }
+      } else {
+        qCard.style.display = "none";
+      }
+
+      const tbody = document.getElementById("teams-tbody");
+      tbody.innerHTML = "";
+      state.teams.forEach((t) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${t.name}</strong></td>
+          <td>${t.count} / ${t.max_size}</td>
+          <td>${t.captain}</td>
+          <td>${t.voted_count} / ${t.count}</td>
+          <td><strong>${t.submitted_option || "ожидаем капитана..."}</strong></td>
+          <td><strong>${t.score}</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  </script>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+

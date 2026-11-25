@@ -1,0 +1,583 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Пульт ведущего</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/socket.io.min.js"></script>
+  <style>
+    .ctrl-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .ctrl-tab.active,
+    .ctrl-tab.active:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .ctrl-panel { display: none; flex: 1 1 auto; }
+    .ctrl-panel.active { display: flex; flex-direction: column; }
+
+    .stage-split-tall {
+      display: grid;
+      grid-template-columns: minmax(325px, 442px) minmax(0, 1fr);
+      gap: 14px;
+      flex: 1 1 auto;
+      min-height: calc(100vh - 140px);
+      align-items: stretch;
+    }
+    @media (max-width: 900px) {
+      .stage-split-tall {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+    }
+    .tall-card {
+      margin-bottom: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .control-left-card {
+      justify-content: flex-start;
+      gap: 14px;
+    }
+    .ready-block-bottom {
+      margin-top: auto;
+      padding-top: 24px;
+    }
+    .status-readout-lg {
+      font-size: clamp(18px, 1.35vw, 22px);
+      line-height: 1.4;
+      margin: 6px 0;
+    }
+    .btns-1-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .sq-btn {
+      min-height: 74px;
+      min-width: 82px;
+      padding: 12px;
+      border-radius: 12px;
+      line-height: 1.25;
+      font-size: 15px;
+    }
+    .sq-btn-sm {
+      min-height: 55px;
+      min-width: 67px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      line-height: 1.2;
+      font-size: 14px;
+    }
+    .btn:hover {
+      background: #e2e8f0;
+      color: var(--text);
+      border-color: #94a3b8;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: #ffffff;
+      opacity: 1;
+    }
+    .inner-right-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .inner-r-tab.active,
+    .inner-r-tab.active:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .inner-r-pane { display: none; flex: 1 1 auto; }
+    .inner-r-pane.active { display: block; }
+
+    .ctrl-team-progress-wrap {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 120px;
+    }
+    .ctrl-team-progress-track {
+      width: 100%;
+      height: 16px;
+      border-radius: 8px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+    .ctrl-team-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 8px;
+      transition: width 0.25s ease;
+    }
+    .ctrl-team-progress-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+      /* === QUIZ TIMER BAR (GREEN -> YELLOW -> RED) === */
+    .quiz-timer-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 8px 0 12px;
+      width: 100%;
+    }
+    .quiz-timer-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: clamp(22px, 1.8vw, 32px);
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .quiz-timer-track {
+      position: relative;
+      width: 100%;
+      height: 28px;
+      border-radius: 10px;
+      background: #e5e7eb;
+      border: 1px solid var(--border, #cbd5e1);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .quiz-timer-fill {
+      height: 100%;
+      width: 100%;
+      background: #16a34a;
+      transition: width 0.25s linear, background-color 0.25s linear;
+    }
+    .quiz-timer-expired-label {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      text-align: center;
+      font-size: clamp(14px, 1.2vw, 18px);
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #b91c1c;
+      text-transform: uppercase;
+      display: none;
+    }
+    .quiz-timer-track.is-expired {
+      background: #fee2e2;
+      border-color: #ef4444;
+    }
+    .quiz-timer-track.is-expired .quiz-timer-fill {
+      width: 0% !important;
+      display: none;
+    }
+    .quiz-timer-track.is-expired .quiz-timer-expired-label {
+      display: block;
+    }
+  </style>
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="wide-16x9">
+    <div class="nav-bar card" style="padding: 10px 16px; margin-bottom: 10px;">
+      <strong style="font-size: clamp(17px, 1.3vw, 22px);">Пульт ведущего</strong>
+      <div class="nav-links">
+        <a class="btn btn-primary" href="/admin">Админка</a>
+        <a class="btn" href="/org-info">Я организатор</a>
+        <a class="btn" href="/broadcast" target="_blank">Трансляция</a>
+      </div>
+    </div>
+
+    <div class="ctrl-tabs">
+      <button type="button" class="btn ctrl-tab active" data-p="p-stage" onclick="switchCtrlTab('p-stage')">1. Эфир и пьедестал</button>
+      <button type="button" class="btn ctrl-tab" data-p="p-edit" onclick="switchCtrlTab('p-edit')">2. Корректировка и кураторы</button>
+      <button type="button" class="btn ctrl-tab" data-p="p-matrix" onclick="switchCtrlTab('p-matrix')">3. Таблица вопросов</button>
+    </div>
+
+    <div id="p-stage" class="ctrl-panel active">
+      <div class="stage-split-tall">
+        <div class="card tall-card control-left-card">
+          <div>
+            <h2 style="margin-top: 0; font-size: clamp(17px, 1.25vw, 21px);">Управление ходом игры</h2>
+            <p class="status-readout-lg">
+              Этап: <strong id="c-status">Лобби</strong>  Вопрос: <strong id="c-q">0 / 0</strong>
+            </p>
+            <div class="quiz-timer-box" id="qt-box-ctrl">
+  <div class="quiz-timer-header">Таймер: <span id="qt-num-ctrl">0</span> с</div>
+  <div class="quiz-timer-track" id="qt-track-ctrl">
+    <div class="quiz-timer-fill" id="qt-fill-ctrl"></div>
+    <span class="quiz-timer-expired-label" id="qt-exp-ctrl">время истекло</span>
+  </div>
+</div>
+            <p class="muted" id="c-random-hint" style="margin: 4px 0 12px; font-size: 13px;"></p>
+
+            <div class="btns-1-2">
+              <button type="button" class="btn btn-primary sq-btn" onclick="socket.emit('control_start_quiz')">Старт квиза</button>
+              <button type="button" class="btn btn-primary sq-btn" onclick="socket.emit('control_next_question')">След. вопрос</button>
+              <button type="button" class="btn sq-btn" onclick="socket.emit('control_close_question')">Закрыть вопрос</button>
+              <button type="button" class="btn sq-btn" onclick="socket.emit('control_reset_game')">В лобби</button>
+            </div>
+          </div>
+
+          <div>
+            <h3 style="margin: 0 0 8px; font-size: 16px;">Финал и пьедестал</h3>
+            <div class="btns-1-2">
+              <button type="button" class="btn btn-primary sq-btn-sm" onclick="socket.emit('control_finish_quiz')">Финал</button>
+              <button type="button" class="btn btn-primary sq-btn-sm" onclick="socket.emit('control_next_podium_step')">След. место</button>
+              <button type="button" class="btn sq-btn-sm" style="grid-column: span 2;" onclick="socket.emit('control_show_full_podium')">Весь пьедестал</button>
+            </div>
+          </div>
+
+          <div class="ready-block-bottom">
+            <h3 style="margin: 0 0 8px; font-size: 16px;">Объявление квиза</h3>
+            <p style="font-size: 14px; margin: 0 0 10px;">
+              Режим: <strong id="ready-state-label">{% if quiz_ready_mode %}АКТИВЕН{% else %}СКРЫТ{% endif %}</strong>
+            </p>
+            <div class="btns-1-2">
+              <button type="button" class="btn btn-primary sq-btn-sm" onclick="setReady(true)">Показать</button>
+              <button type="button" class="btn sq-btn-sm" onclick="setReady(false)">Скрыть</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card tall-card">
+          <div class="inner-right-tabs">
+            <button type="button" class="btn inner-r-tab active" data-rt="rt-teams" onclick="switchRightInnerTab('rt-teams')">Текущее состояние команд</button>
+            <button type="button" class="btn inner-r-tab" data-rt="rt-open" onclick="switchRightInnerTab('rt-open')">Проверка свободных ответов</button>
+          </div>
+
+          <div id="rt-teams" class="inner-r-pane active">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Команда</th>
+                    <th>Куратор</th>
+                    <th>Ответ</th>
+                    <th>Очки</th>
+                    <th>Куратору</th>
+                  </tr>
+                </thead>
+                <tbody id="c-teams"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="rt-open" class="inner-r-pane">
+            <div id="open-grading-banner" style="padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--border); margin-bottom: 10px; font-size: 14px;">
+              <div id="open-ref-box">Выберите вопрос со свободным ответом в эфире, чтобы увидеть ответы команд и выставить оценку.</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Команда</th>
+                    <th>Ответ команды</th>
+                    <th>Очки</th>
+                    <th>Оценка</th>
+                  </tr>
+                </thead>
+                <tbody id="open-grading-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="p-edit" class="ctrl-panel">
+      <div class="card">
+        <h2 style="margin-top: 0; font-size: clamp(18px, 1.35vw, 23px);">Корректировка ответа и баллов</h2>
+        <div class="grid-2">
+          <label>Команда:<select id="adj-team"></select></label>
+          <label>Вопрос:<select id="adj-question"></select></label>
+          <label>Вариант (для вопросов с выбором):
+            <select id="adj-option">
+              <option value=""></option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+          </label>
+          <label>Свободный ответ (если нужно исправить текст):
+            <input type="text" id="adj-open-text" placeholder="Текст ответа команды" />
+          </label>
+          <label>Итоговые очки команды:
+            <input type="number" id="adj-score" value="0" />
+          </label>
+        </div>
+        <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px;">
+          <button type="button" class="btn btn-primary sq-btn-sm" onclick="applyAdjustment()">Сохранить корректировку</button>
+          <button type="button" class="btn sq-btn-sm" id="adj-allow-btn" onclick="allowSelectedCuratorChange()">Разрешить куратору сменить ответ</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="p-matrix" class="ctrl-panel">
+      <div class="card">
+        <h2 style="margin-top: 0; font-size: clamp(18px, 1.35vw, 23px);">Сводная таблица всех вопросов и ответов</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr id="matrix-head-row"></tr></thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+        const quizTimerMaxMap = {};
+    function updateQuizTimerBar(key, remaining, totalSec, isQuestionActive) {
+      const rem = Math.max(0, Number(remaining) || 0);
+      if (Number(totalSec) > 0) {
+        quizTimerMaxMap[key] = Number(totalSec);
+      } else if (!quizTimerMaxMap[key] || rem > quizTimerMaxMap[key]) {
+        quizTimerMaxMap[key] = Math.max(rem, 1);
+      }
+      const maxSec = Math.max(1, quizTimerMaxMap[key] || 1);
+      const track = document.getElementById(`qt-track-${key}`);
+      const fill = document.getElementById(`qt-fill-${key}`);
+      const expLbl = document.getElementById(`qt-exp-${key}`);
+      const numEl = document.getElementById(`qt-num-${key}`);
+      if (numEl) numEl.textContent = rem;
+      if (!track || !fill) return;
+
+      const expired = (rem <= 0) || (isQuestionActive === false);
+      if (expired) {
+        track.classList.add("is-expired");
+        fill.style.width = "0%";
+        if (expLbl) expLbl.textContent = "время истекло";
+        return;
+      }
+
+      track.classList.remove("is-expired");
+      const ratio = Math.min(1, Math.max(0, rem / maxSec));
+      fill.style.width = `${(ratio * 100).toFixed(1)}%`;
+
+      let color = "#16a34a";
+      if (ratio <= 0.25) {
+        color = "#dc2626";
+      } else if (ratio <= 0.55) {
+        color = "#eab308";
+      }
+      fill.style.backgroundColor = color;
+    }
+    const socket = io();
+    socket.emit("broadcast_join");
+    let latestState = null;
+
+    const STAGE_LABELS_RU = {
+      lobby: "Лобби",
+      sponsor: "Спонсор",
+      question: "Вопрос",
+      reveal: "Проверка / ответ",
+      podium_step: "Пьедестал (по шагам)",
+      finished: "Завершён"
+    };
+
+    function formatStageRu(status) {
+      if (!status) return "Лобби";
+      return STAGE_LABELS_RU[status] || status;
+    }
+
+    function switchCtrlTab(panelId) {
+      document.querySelectorAll(".ctrl-panel").forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".ctrl-tab").forEach((b) => b.classList.remove("active"));
+      document.getElementById(panelId).classList.add("active");
+      const btn = document.querySelector(`.ctrl-tab[data-p='${panelId}']`);
+      if (btn) btn.classList.add("active");
+    }
+
+    function switchRightInnerTab(paneId) {
+      document.querySelectorAll(".inner-r-pane").forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".inner-r-tab").forEach((b) => b.classList.remove("active"));
+      document.getElementById(paneId).classList.add("active");
+      const btn = document.querySelector(`.inner-r-tab[data-rt='${paneId}']`);
+      if (btn) btn.classList.add("active");
+    }
+
+    function setReady(val) {
+      socket.emit("control_set_quiz_ready", { ready: val });
+    }
+
+    function allowCuratorChange(teamId) {
+      socket.emit("control_allow_curator_change", { team_id: teamId });
+    }
+
+    function allowSelectedCuratorChange() {
+      const teamId = document.getElementById("adj-team").value;
+      if (teamId) allowCuratorChange(teamId);
+    }
+
+    function gradeOpen(teamId, verdict) {
+      socket.emit("control_grade_open", { team_id: teamId, verdict: verdict });
+    }
+
+    function syncEditorFromSelection() {
+      if (!latestState) return;
+      const teamId = document.getElementById("adj-team").value;
+      const qId = document.getElementById("adj-question").value;
+      const t = (latestState.teams || []).find((x) => x.id === teamId);
+      if (!t) return;
+      document.getElementById("adj-score").value = t.score;
+      const ans = (t.answers_by_q && qId in t.answers_by_q) ? (t.answers_by_q[qId] || "") : (t.submitted_option || "");
+      document.getElementById("adj-option").value = ["A", "B", "C", "D"].includes(ans) ? ans : "";
+      document.getElementById("adj-open-text").value = t.submitted_text || (["A", "B", "C", "D"].includes(ans) ? "" : ans);
+    }
+
+    function applyAdjustment() {
+      const teamId = document.getElementById("adj-team").value;
+      const qId = document.getElementById("adj-question").value;
+      const opt = document.getElementById("adj-option").value;
+      const openTxt = document.getElementById("adj-open-text").value;
+      const score = parseInt(document.getElementById("adj-score").value || "0", 10);
+      socket.emit("control_override_team_result", {
+        team_id: teamId,
+        question_id: qId,
+        option: opt,
+        answer_text: openTxt,
+        score: score
+      });
+    }
+
+    socket.on("quiz_ready_updated", (d) => {
+      document.getElementById("ready-state-label").textContent = d.quiz_ready_mode ? "АКТИВЕН" : "СКРЫТ";
+    });
+
+    socket.on("timer_tick", (d) => { const rem = Number(d.remaining_seconds) || 0; const st = (latestState && latestState.status) || "question"; updateQuizTimerBar("ctrl", rem, latestState && latestState.question ? latestState.question.time_limit : null, st === "question" && rem > 0); });
+
+    socket.on("broadcast_state", (state) => {
+      latestState = state;
+      document.getElementById("c-status").textContent = formatStageRu(state.status);
+      document.getElementById("c-q").textContent = `${state.question_index} / ${state.total_questions}`;
+      updateQuizTimerBar("ctrl", Number(state.remaining_seconds) || 0, state.question ? state.question.time_limit : null, state.status === "question" && (Number(state.remaining_seconds) || 0) > 0);
+      document.getElementById("c-random-hint").textContent = state.auto_random_unanswered
+        ? "Тестовый автоответ для неответивших команд включён."
+        : "Тестовый автоответ для неответивших команд выключен.";
+
+      const teamSel = document.getElementById("adj-team");
+      const prevTeam = teamSel.value;
+      teamSel.innerHTML = "";
+      (state.teams || []).forEach((t) => {
+        const opt = document.createElement("option");
+        opt.value = t.id;
+        opt.textContent = t.name;
+        teamSel.appendChild(opt);
+      });
+      if (prevTeam && Array.from(teamSel.options).some((o) => o.value === prevTeam)) teamSel.value = prevTeam;
+
+      const qSel = document.getElementById("adj-question");
+      const prevQ = qSel.value;
+      qSel.innerHTML = "";
+      (state.questions_summary || []).forEach((qItem) => {
+        const opt = document.createElement("option");
+        opt.value = qItem.id;
+        opt.textContent = `Вопрос ${qItem.index} (${qItem.points} б.)`;
+        qSel.appendChild(opt);
+      });
+      if (prevQ && Array.from(qSel.options).some((o) => o.value === prevQ)) qSel.value = prevQ;
+      syncEditorFromSelection();
+
+      const tbody = document.getElementById("c-teams");
+      tbody.innerHTML = "";
+      (state.teams || []).forEach((t) => {
+        const ansLabel = t.submitted_text ? t.submitted_text : (t.submitted_option || "");
+        const cap = Math.max(1, Number(t.capacity) || 1);
+        const cnt = Math.max(0, Number(t.count) || 0);
+        const pct = Math.min(100, Math.max(0, (cnt / cap) * 100));
+        const teamColor = t.color || "#2563eb";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <div><strong style="color:${teamColor};">${t.name}</strong></div>
+            <div class="ctrl-team-progress-wrap">
+              <div class="ctrl-team-progress-track">
+                <div class="ctrl-team-progress-fill" style="width:${pct}%;background:${teamColor};"></div>
+              </div>
+              <span class="ctrl-team-progress-label">${cnt} / ${cap} чел.</span>
+            </div>
+          </td>
+          <td>${t.curator}</td>
+          <td><strong>${ansLabel}</strong></td>
+          <td><strong>${t.score}</strong></td>
+          <td>
+            <button type="button" class="btn btn-sm sq-btn-sm ${t.curator_change_allowed ? "btn-primary" : ""}" onclick="allowCuratorChange('${t.id}')">
+              ${t.curator_change_allowed ? "Разрешено" : "Разрешить сменить"}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const q = state.question;
+      const refBox = document.getElementById("open-ref-box");
+      const openBody = document.getElementById("open-grading-body");
+      openBody.innerHTML = "";
+      if (q && q.question_type === "open") {
+        const allSubText = state.all_submitted ? "Все команды отправили ответы  можно выставлять оценки!" : "Ожидаем ответы всех команд (оценивать можно в любой момент).";
+        refBox.innerHTML = `<div><strong>Вопрос:</strong> ${q.text}</div><div style="margin-top:4px;"><strong>Правильный ответ:</strong> ${q.reference_answer || "не указан"}  <strong>Правильно:</strong> ${q.points} б.  <strong>Неполный:</strong> ${q.partial_points} б.</div><div class="muted" style="margin-top:4px;">${allSubText}</div>`;
+        (state.teams || []).forEach((t) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><strong>${t.name}</strong></td>
+            <td>${t.submitted_text || "<span class='muted'> не отправлен </span>"}</td>
+            <td><strong>${t.score}</strong></td>
+            <td style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button type="button" class="btn btn-sm sq-btn-sm ${t.verdict === "correct" ? "btn-primary" : ""}" onclick="gradeOpen('${t.id}', 'correct')">Правильно (+${q.points})</button>
+              <button type="button" class="btn btn-sm sq-btn-sm ${t.verdict === "partial" ? "btn-primary" : ""}" onclick="gradeOpen('${t.id}', 'partial')">Неполный (+${q.partial_points})</button>
+              <button type="button" class="btn btn-sm sq-btn-sm ${t.verdict === "wrong" ? "btn-primary" : ""}" onclick="gradeOpen('${t.id}', 'wrong')">Неправильно (0)</button>
+            </td>
+          `;
+          openBody.appendChild(tr);
+        });
+      } else {
+        refBox.textContent = "Сейчас активен вопрос с выбором варианта (или этап вне вопросов). Свободные ответы проверяются на вопросах со свободным ответом.";
+      }
+
+      const headRow = document.getElementById("matrix-head-row");
+      const matrixBody = document.getElementById("matrix-body");
+      const qs = state.questions_summary || [];
+      let headHtml = `<th>Команда</th><th>Очки</th>`;
+      qs.forEach((qItem) => {
+        const tag = qItem.question_type === "open" ? `своб. ${qItem.points}/${qItem.partial_points}б` : `${qItem.correct_option}${qItem.points}б`;
+        headHtml += `<th>В${qItem.index} <span class="muted" style="font-weight:400;">(${tag})</span></th>`;
+      });
+      headRow.innerHTML = headHtml;
+
+      matrixBody.innerHTML = "";
+      (state.teams || []).forEach((t) => {
+        const tr = document.createElement("tr");
+        let rowHtml = `<td><strong>${t.name}</strong></td><td><strong>${t.score}</strong></td>`;
+        qs.forEach((qItem) => {
+          const ans = (t.answers_by_q && qItem.id in t.answers_by_q) ? t.answers_by_q[qItem.id] : null;
+          const verd = (t.verdicts_by_q && qItem.id in t.verdicts_by_q) ? t.verdicts_by_q[qItem.id] : null;
+          const isRight = (verd === "correct") || (ans && ans === qItem.correct_option);
+          const style = isRight ? "background:#f0fdf4;color:#15803d;font-weight:700;" : (verd === "partial" ? "background:#fefce8;color:#a16207;font-weight:700;" : "");
+          rowHtml += `<td style="${style}">${ans || ""}</td>`;
+        });
+        tr.innerHTML = rowHtml;
+        matrixBody.appendChild(tr);
+      });
+    });
+
+    document.getElementById("adj-team").addEventListener("change", syncEditorFromSelection);
+    document.getElementById("adj-question").addEventListener("change", syncEditorFromSelection);
+  </script>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+
+

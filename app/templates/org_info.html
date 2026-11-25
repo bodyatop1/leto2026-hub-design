@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ event.org_info_title }}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="/static/css/design.css" rel="stylesheet" />
+  <link rel="/static/css/design.css?v=1795435202" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/design.css?v=1795435224" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav-bar card" style="padding: 10px 14px;">
+      <strong>Я организатор</strong>
+      <div class="nav-links">
+        <a class="btn btn-sm" href="/admin">Панель администратора</a>
+        <a class="btn btn-sm" href="/control">Пульт ведущего</a>
+        <a class="btn btn-sm" href="/team">Наша команда</a>
+      </div>
+    </div>
+
+    {% if not authed %}
+      <div class="card" style="max-width: 440px; margin: 24px auto;">
+        <h1 style="margin-top: 0;">Вход для организаторов</h1>
+        {% if err %}
+          <p style="color: #b91c1c; font-weight: 600;">Неверный пароль</p>
+        {% endif %}
+        <form method="post" action="/org-info/auth">
+          <p>
+            <label>Пароль:
+              <input type="password" name="password" autofocus required />
+            </label>
+          </p>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Открыть</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="card">
+        <h1 style="margin-top: 0;">{{ event.org_info_title }}</h1>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top: 0;">Объявления</h2>
+        {% for ann in event.org_announcements %}
+          <div class="schedule-row">{{ ann }}</div>
+        {% endfor %}
+        <form method="post" action="/org-info/add-announcement" style="margin-top: 10px; display: flex; gap: 8px;">
+          <input type="text" name="announcement" placeholder="Новое объявление для организаторов" required />
+          <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top: 0;">Ссылки на облачные хранилища</h2>
+        {% for lk in event.org_cloud_links %}
+          <div class="schedule-row">
+            <strong>{{ lk.title }}</strong>  <a href="{{ lk.url }}" target="_blank" rel="noopener">{{ lk.url }}</a>
+          </div>
+        {% endfor %}
+        <form method="post" action="/org-info/add-link" style="margin-top: 10px;" class="grid-2">
+          <input type="text" name="title" placeholder="Название хранилища / таблицы" required />
+          <div style="display: flex; gap: 8px;">
+            <input type="text" name="url" placeholder="https://..." required />
+            <button type="submit" class="btn btn-primary">Добавить</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top: 0;">Файлы</h2>
+        {% for fl in event.org_files %}
+          <div class="schedule-row">
+            {% if fl.url %}
+              <a href="{{ fl.url }}" target="_blank" rel="noopener">{{ fl.title }}</a>
+            {% else %}
+              <span>{{ fl.title }} (заглушка файла)</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <form method="post" action="/org-info/add-file" enctype="multipart/form-data" style="margin-top: 10px;" class="grid-2">
+          <input type="text" name="title" placeholder="Подпись файла" />
+          <div style="display: flex; gap: 8px;">
+            <input type="file" name="upload_file" required />
+            <button type="submit" class="btn btn-primary">Загрузить</button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+  </div>  <script src="/static/js/design_motion.js?v=1795435224" defer></script>
+</body>
+</html>
+
+
+
+
